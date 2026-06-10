@@ -1,0 +1,111 @@
+{
+  "info": {
+    "name": "UsTrip API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000/api" },
+    { "key": "token", "value": "" },
+    { "key": "tripId", "value": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa" },
+    { "key": "expenseId", "value": "dddddddd-dddd-dddd-dddd-dddddddddddd" },
+    { "key": "paymentId", "value": "" }
+  ],
+  "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"email\":\"an@ustrip.vn\",\"password\":\"Password123!\"}" },
+            "url": "{{baseUrl}}/auth/login"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.collectionVariables.set('token', pm.response.json().token);"] } }]
+        },
+        {
+          "name": "Current User",
+          "request": { "method": "GET", "url": "{{baseUrl}}/auth/me" }
+        }
+      ]
+    },
+    {
+      "name": "Trips",
+      "item": [
+        { "name": "List Trips", "request": { "method": "GET", "url": "{{baseUrl}}/trips" } },
+        { "name": "Trip Dashboard", "request": { "method": "GET", "url": "{{baseUrl}}/trips/{{tripId}}/dashboard" } },
+        { "name": "Financial Summary", "request": { "method": "GET", "url": "{{baseUrl}}/trips/{{tripId}}/financial-summary" } },
+        { "name": "Members", "request": { "method": "GET", "url": "{{baseUrl}}/trips/{{tripId}}/members" } },
+        { "name": "Activities", "request": { "method": "GET", "url": "{{baseUrl}}/trips/{{tripId}}/activities" } },
+        { "name": "Fund", "request": { "method": "GET", "url": "{{baseUrl}}/trips/{{tripId}}/fund" } },
+        { "name": "Expenses", "request": { "method": "GET", "url": "{{baseUrl}}/trips/{{tripId}}/expenses" } },
+        { "name": "Settlements", "request": { "method": "GET", "url": "{{baseUrl}}/trips/{{tripId}}/settlements" } }
+      ]
+    },
+    {
+      "name": "Expense Split",
+      "item": [
+        {
+          "name": "Generate Equal Split",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{}" },
+            "url": "{{baseUrl}}/expenses/{{expenseId}}/split"
+          }
+        }
+      ]
+    },
+    {
+      "name": "MoMo Payments",
+      "item": [
+        {
+          "name": "Create MoMo Contribution",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"amount\":100000}" },
+            "url": "{{baseUrl}}/trips/{{tripId}}/contributions/momo/create"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.collectionVariables.set('paymentId', pm.response.json().id);"] } }]
+        },
+        {
+          "name": "Payment Status",
+          "request": { "method": "GET", "url": "{{baseUrl}}/payments/{{paymentId}}/status" }
+        },
+        {
+          "name": "Query MoMo",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"payment_id\":\"{{paymentId}}\"}" },
+            "url": "{{baseUrl}}/payments/momo/query"
+          }
+        },
+        {
+          "name": "Open Mock Payment Page",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": "{{baseUrl}}/payments/{{paymentId}}/mock"
+          }
+        },
+        {
+          "name": "Complete Mock Payment",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "url": "{{baseUrl}}/payments/{{paymentId}}/mock-success"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [{ "name": "List Notifications", "request": { "method": "GET", "url": "{{baseUrl}}/notifications" } }]
+    }
+  ]
+}

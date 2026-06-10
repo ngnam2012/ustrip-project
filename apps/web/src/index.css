@@ -1,0 +1,29 @@
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body { @apply bg-canvas text-ink font-sans antialiased; }
+  input, select, textarea { @apply w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-travel focus:bg-white focus:ring-4 focus:ring-blue-100; }
+  label { @apply mb-2 block text-sm font-semibold text-slate-700; }
+}
+
+@layer components {
+  .card { @apply rounded-2xl bg-white p-5 shadow-card; }
+  .btn { @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-50; }
+  .btn-primary { @apply btn bg-travel text-white hover:bg-blue-700; }
+  .btn-secondary { @apply btn border border-blue-200 bg-blue-50 text-travel hover:bg-blue-100; }
+  .btn-coral { @apply btn bg-coral text-white hover:bg-red-500; }
+  .badge { @apply inline-flex rounded-full px-3 py-1 text-xs font-bold; }
+  .page-title { @apply text-2xl font-bold tracking-tight md:text-3xl; }
+  .table-wrap { @apply overflow-x-auto rounded-2xl bg-white shadow-card; }
+  .table { @apply min-w-full text-left text-sm; }
+  .table th { @apply bg-slate-50 px-5 py-4 text-xs font-bold uppercase tracking-wider text-slate-500; }
+  .table td { @apply border-t border-slate-100 px-5 py-4; }
+  .table tbody tr { @apply transition hover:bg-blue-50/50; }
+}
+
+.leaflet-container { font-family: 'Be Vietnam Pro', sans-serif; }
+.ustrip-marker > div { transition: filter .2s ease, transform .2s ease; }
+.ustrip-marker:hover > div { filter: brightness(1.08); transform: rotate(-45deg) scale(1.15) !important; }

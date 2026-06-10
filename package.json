@@ -1,0 +1,23 @@
+{
+  "name": "ustrip-project",
+  "private": true,
+  "workspaces": [
+    "apps/web",
+    "apps/mobile",
+    "server"
+  ],
+  "scripts": {
+    "dev": "concurrently --kill-others-on-fail --names API,WEB,MOBILE --prefix-colors blue,green,magenta \"npm:dev:server\" \"npm:dev:web\" \"npm:dev:mobile\"",
+    "dev:web": "npm run dev -w apps/web",
+    "dev:mobile": "npm run start -w apps/mobile",
+    "dev:server": "npm run dev -w server",
+    "check": "npm run check -w server && npm run build -w apps/web"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "overrides": {
+    "react-native-reanimated": "4.1.1",
+    "react-native-worklets": "0.5.1"
+  }
+}
