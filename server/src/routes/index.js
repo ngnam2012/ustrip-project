@@ -8,6 +8,8 @@ import * as funds from '../controllers/fundController.js';
 import * as expenses from '../controllers/expenseController.js';
 import * as dashboard from '../controllers/dashboardController.js';
 import * as misc from '../controllers/miscController.js';
+import * as ai from '../controllers/aiController.js';
+import * as chat from '../controllers/chatController.js';
 import { authenticate, requireActivityMember, requireContributionMember, requireExpenseMember, requireSplitMember, requireTripMember, requireTripOwner } from '../middlewares/auth.js';
 import { validate } from '../middlewares/validate.js';
 
@@ -43,6 +45,11 @@ router.patch('/splits/:splitId/settled', requireSplitMember, expenses.settleSpli
 router.get('/trips/:tripId/dashboard', requireTripMember, dashboard.dashboard);
 router.get('/trips/:tripId/financial-summary', requireTripMember, dashboard.financialSummary);
 router.route('/trips/:tripId/reminders').get(requireTripMember, trips.listReminders).post(requireTripMember, trips.createReminder);
+router.post('/trips/:tripId/ai/itinerary', requireTripMember, ai.suggestItinerary);
+router.post('/trips/:tripId/ai/places', requireTripMember, ai.suggestPlaces);
+
+router.route('/trips/:tripId/messages').get(requireTripMember, chat.getMessages).post(requireTripMember, chat.sendMessage);
+
 router.get('/notifications', misc.notifications);
 router.patch('/notifications/:notificationId/read', misc.readNotification);
 router.put('/notifications/push-token', body('token').isString().isLength({ min: 20, max: 300 }), body('platform').optional().isIn(['ios', 'android', 'web', 'unknown']), validate, misc.registerPushToken);

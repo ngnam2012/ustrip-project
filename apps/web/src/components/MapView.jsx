@@ -9,7 +9,7 @@ const nominatimUrl = (import.meta.env.VITE_NOMINATIM_URL || 'https://nominatim.o
 
 const markerIcon = L.divIcon({
   className: 'ustrip-marker',
-  html: '<div style="width:28px;height:28px;border-radius:50% 50% 50% 0;background:#007AFF;border:4px solid white;box-shadow:0 4px 15px #0058bc55;transform:rotate(-45deg)"><div style="width:7px;height:7px;border-radius:50%;background:white;margin:6px"></div></div>',
+  html: '<div style="width:28px;height:28px;border-radius:50% 50% 50% 0;background:#2563EB;border:4px solid white;box-shadow:0 4px 15px rgba(37,99,235,0.35);transform:rotate(-45deg)"><div style="width:7px;height:7px;border-radius:50%;background:white;margin:6px"></div></div>',
   iconSize: [28, 28], iconAnchor: [14, 28]
 });
 
@@ -22,7 +22,7 @@ function Picker({ onPick }) {
 }
 
 export function MapLoadingState() {
-  return <div className="grid h-80 animate-pulse place-items-center rounded-2xl bg-slate-100 text-sm font-semibold text-slate-400">Đang tải bản đồ...</div>;
+  return <div className="grid h-80 animate-shimmer place-items-center rounded-2xl bg-gradient-to-r from-slate-100 via-slate-50 to-slate-100 bg-[length:200%_100%] text-sm font-semibold text-slate-400">Đang tải bản đồ...</div>;
 }
 
 export function MapErrorState({ message = 'Không thể hiển thị bản đồ.' }) {
@@ -31,7 +31,7 @@ export function MapErrorState({ message = 'Không thể hiển thị bản đồ
 
 export function RoutePreview({ activities }) {
   const points = activities.filter(valid).map(coords);
-  return points.length > 1 ? <Polyline positions={points} pathOptions={{ color: '#007AFF', weight: 4, dashArray: '8 8' }}/> : null;
+  return points.length > 1 ? <Polyline positions={points} pathOptions={{ color: '#2563EB', weight: 4, dashArray: '8 8' }}/> : null;
 }
 
 export function ActivityMarker({ activity }) {
@@ -68,6 +68,11 @@ export function LocationSearchInput({ value, onChange, onSelect }) {
   };
   return <div className="relative">
     <div className="flex gap-2"><input value={value} onChange={(e) => onChange(e.target.value)} placeholder="Tìm địa điểm thật..."/><button type="button" className="btn-secondary shrink-0" onClick={search}>{loading ? 'Đang tìm' : 'Tìm'}</button></div>
-    {results.length > 0 && <div className="absolute z-[1001] mt-2 max-h-56 w-full overflow-auto rounded-xl border border-slate-200 bg-white p-2 shadow-xl">{results.map((result) => <button type="button" key={result.place_id} onClick={() => { onSelect({ location: result.display_name.split(',')[0], location_name: result.name || result.display_name.split(',')[0], address: result.display_name, latitude: Number(result.lat), longitude: Number(result.lon), place_id: String(result.place_id), map_provider: 'openstreetmap' }); setResults([]); }} className="block w-full rounded-lg p-3 text-left text-sm hover:bg-blue-50"><b>{result.name || result.display_name.split(',')[0]}</b><span className="mt-1 block text-xs text-slate-500">{result.display_name}</span></button>)}</div>}
+    {results.length > 0 && <div className="absolute z-[1001] mt-2 max-h-56 w-full overflow-auto rounded-xl border border-slate-200 bg-white p-1.5 shadow-modal">
+      {results.map((result) => <button type="button" key={result.place_id} onClick={() => { onSelect({ location: result.display_name.split(',')[0], location_name: result.name || result.display_name.split(',')[0], address: result.display_name, latitude: Number(result.lat), longitude: Number(result.lon), place_id: String(result.place_id), map_provider: 'openstreetmap' }); setResults([]); }} className="block w-full rounded-lg p-3 text-left text-sm transition hover:bg-blue-50">
+        <b>{result.name || result.display_name.split(',')[0]}</b>
+        <span className="mt-1 block text-xs text-slate-500">{result.display_name}</span>
+      </button>)}
+    </div>}
   </div>;
 }

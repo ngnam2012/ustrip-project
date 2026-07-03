@@ -1,7 +1,7 @@
 import * as SecureStore from 'expo-secure-store';
 import * as ImagePicker from 'expo-image-picker';
 
-const BASE = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000/api';
+export const BASE = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 export async function api(path, options = {}) {
   const token = await SecureStore.getItemAsync('ustrip_token');
@@ -28,6 +28,7 @@ export async function api(path, options = {}) {
 export async function saveToken(token) { await SecureStore.setItemAsync('ustrip_token', token); }
 export async function removeToken() { await SecureStore.deleteItemAsync('ustrip_token'); }
 export async function hasToken() { return Boolean(await SecureStore.getItemAsync('ustrip_token')); }
+export async function getToken() { return await SecureStore.getItemAsync('ustrip_token'); }
 export const money = (value = 0) => `${new Intl.NumberFormat('vi-VN').format(Number(value))}đ`;
 
 export async function pickAndUploadImage(type = 'bill') {

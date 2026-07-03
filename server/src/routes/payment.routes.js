@@ -13,5 +13,6 @@ router.get('/payments/:paymentId/status', authenticate, payments.status);
 router.post('/payments/momo/query', authenticate, body('payment_id').isUUID(), validate, payments.query);
 router.get('/payments/:paymentId/mock', payments.mockPage);
 router.post('/payments/:paymentId/mock-success', payments.mockSuccess);
+router.get('/payments/:paymentId/mock-success', payments.mockSuccess);
 
 export default router;

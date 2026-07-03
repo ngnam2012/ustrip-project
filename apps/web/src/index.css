@@ -1,29 +1,118 @@
-@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
+  html { scroll-behavior: smooth; }
+  
+  /* Custom scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 100px; }
+  ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+  
+  ::selection { background-color: rgba(37, 99, 235, 0.15); color: #0F172A; }
   body { @apply bg-canvas text-ink font-sans antialiased; }
-  input, select, textarea { @apply w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-travel focus:bg-white focus:ring-4 focus:ring-blue-100; }
-  label { @apply mb-2 block text-sm font-semibold text-slate-700; }
+
+  input, select, textarea {
+    @apply w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm
+           outline-none transition-all duration-200
+           placeholder:text-slate-400
+           focus:border-travel focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:shadow-glow;
+  }
+  select { @apply appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2216%22%20height%3D%2216%22%20fill%3D%22%2364748b%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M4.646%206.646a.5.5%200%200%201%20.708%200L8%209.293l2.646-2.647a.5.5%200%200%201%20.708.708l-3%203a.5.5%200%200%201-.708%200l-3-3a.5.5%200%200%201%200-.708z%22/%3E%3C/svg%3E')] bg-[length:16px] bg-[right_12px_center] bg-no-repeat pr-10; }
+  label { @apply mb-1.5 block text-sm font-semibold text-slate-600; }
 }
 
 @layer components {
-  .card { @apply rounded-2xl bg-white p-5 shadow-card; }
-  .btn { @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-50; }
-  .btn-primary { @apply btn bg-travel text-white hover:bg-blue-700; }
-  .btn-secondary { @apply btn border border-blue-200 bg-blue-50 text-travel hover:bg-blue-100; }
-  .btn-coral { @apply btn bg-coral text-white hover:bg-red-500; }
-  .badge { @apply inline-flex rounded-full px-3 py-1 text-xs font-bold; }
-  .page-title { @apply text-2xl font-bold tracking-tight md:text-3xl; }
-  .table-wrap { @apply overflow-x-auto rounded-2xl bg-white shadow-card; }
+  .card {
+    @apply rounded-2xl bg-white p-5 shadow-card border border-slate-100/80
+           transition-all duration-300;
+  }
+  .card-hover { @apply card hover:-translate-y-1 hover:shadow-card-hover hover:border-blue-100/60; }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3
+           text-sm font-bold tracking-tight
+           transition-all duration-200
+           active:scale-[0.97]
+           disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100;
+  }
+  .btn-primary {
+    @apply btn bg-gradient-to-r from-travel to-blue-600 text-white shadow-sm
+           hover:from-blue-700 hover:to-blue-700 hover:shadow-md hover:-translate-y-0.5;
+  }
+  .btn-secondary {
+    @apply btn border border-slate-200 bg-white text-slate-700
+           hover:border-blue-200 hover:bg-blue-50 hover:text-travel hover:-translate-y-0.5;
+  }
+  .btn-coral {
+    @apply btn bg-gradient-to-r from-coral to-rose-500 text-white shadow-sm
+           hover:from-rose-600 hover:to-rose-600 hover:shadow-md hover:-translate-y-0.5;
+  }
+  .btn-ghost {
+    @apply btn text-slate-600 hover:bg-slate-100 hover:text-ink;
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold;
+  }
+  .page-title {
+    @apply text-2xl font-extrabold tracking-tight text-ink md:text-3xl;
+  }
+  .page-eyebrow {
+    @apply text-sm font-bold uppercase tracking-wider text-travel;
+  }
+
+  .table-wrap {
+    @apply overflow-x-auto rounded-2xl bg-white shadow-card border border-slate-100/80;
+  }
   .table { @apply min-w-full text-left text-sm; }
-  .table th { @apply bg-slate-50 px-5 py-4 text-xs font-bold uppercase tracking-wider text-slate-500; }
+  .table th {
+    @apply bg-slate-50/80 px-5 py-4 text-xs font-bold uppercase tracking-wider text-slate-500
+           first:rounded-tl-2xl last:rounded-tr-2xl;
+  }
   .table td { @apply border-t border-slate-100 px-5 py-4; }
-  .table tbody tr { @apply transition hover:bg-blue-50/50; }
+  .table tbody tr {
+    @apply transition-colors duration-150 hover:bg-blue-50/40;
+  }
+
+  /* Glass morphism card */
+  .glass {
+    @apply bg-white/60 backdrop-blur-xl border border-white/20;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.08), 0 0 1px rgba(0,0,0,0.1);
+  }
+  
+  /* Gradient text */
+  .text-gradient {
+    @apply bg-gradient-to-r from-blue-600 to-violet bg-clip-text text-transparent;
+  }
+  .text-gradient-warm {
+    @apply bg-gradient-to-r from-coral to-amber-500 bg-clip-text text-transparent;
+  }
+
+  /* Stat card */
+  .stat-card {
+    @apply card group relative overflow-hidden;
+  }
+  .stat-card::before {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-br from-blue-50/50 to-transparent opacity-0
+           transition-opacity duration-300;
+  }
+  .stat-card:hover::before {
+    @apply opacity-100;
+  }
 }
 
-.leaflet-container { font-family: 'Be Vietnam Pro', sans-serif; }
+.leaflet-container { font-family: 'Inter', system-ui, sans-serif; }
 .ustrip-marker > div { transition: filter .2s ease, transform .2s ease; }
 .ustrip-marker:hover > div { filter: brightness(1.08); transform: rotate(-45deg) scale(1.15) !important; }
+
+/* Custom toast styles */
+.toast-custom {
+  @apply rounded-xl border border-slate-200/80 bg-white/90 backdrop-blur-lg
+         text-sm font-semibold text-ink;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.08), 0 0 1px rgba(0,0,0,0.1);
+}
+

@@ -4,7 +4,7 @@ import { useAuth } from './context/AuthContext';
 import { Loader } from './components/ui';
 import { AuthPage, Landing } from './pages/PublicPages';
 import { ProfilePage, TripOverview, TripsPage } from './pages/TripPages';
-import { ActivityDetailPage, AiPage, ExpenseDetailPage, ExpensesPage, FinancePage, FundPage, ItineraryPage, MembersPage, NotificationsPage, PaymentDetailPage, RemindersPage, SettlementsPage } from './pages/FeaturePages';
+import { ActivityDetailPage, AiPage, ExpenseDetailPage, ExpensesPage, FinancePage, FundPage, ItineraryPage, MembersPage, NotificationsPage, PaymentDetailPage, RemindersPage, SettlementsPage, ChatPage, AiPlacesPage } from './pages/FeaturePages';
 
 function Protected({ children }) {
   const { user, loading } = useAuth();
@@ -33,6 +33,8 @@ export default function App() {
       <Route path="/trips/:tripId/finance" element={<FinancePage/>}/>
       <Route path="/trips/:tripId/reminders" element={<RemindersPage/>}/>
       <Route path="/trips/:tripId/ai" element={<AiPage/>}/>
+      <Route path="/trips/:tripId/chat" element={<ChatPage/>}/>
+      <Route path="/trips/:tripId/ai-places" element={<AiPlacesPage/>}/>
     </Route>
     <Route path="*" element={<Navigate to="/" replace/>}/>
   </Routes>;

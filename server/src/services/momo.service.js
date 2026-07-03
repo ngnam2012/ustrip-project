@@ -41,7 +41,7 @@ async function postJson(url, body) {
 
 export async function createMomoPayment(payment, publicBaseUrl) {
   if (isMomoMock()) {
-    const base = process.env.PUBLIC_API_URL || publicBaseUrl || `http://localhost:${process.env.PORT || 5000}`;
+    const base = publicBaseUrl || process.env.PUBLIC_API_URL || `http://localhost:${process.env.PORT || 5000}`;
     return {
       partnerCode: 'MOMO_MOCK',
       requestId: payment.request_id,
