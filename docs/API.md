@@ -1,125 +1,1079 @@
-# UsTrip API
+# Tài Liệu API (UsTrip)
 
-Base URL: `http://localhost:5000/api`
+Tài liệu này mô tả chi tiết toàn bộ các REST API endpoints của hệ thống backend UsTrip, được sinh tự động từ mã nguồn.
 
-Protected routes require `Authorization: Bearer <token>`. JSON request bodies use `Content-Type: application/json`. Upload routes use multipart form data with the field name `image`.
+## Core
 
-## Authentication
+### GET `/health`
 
-| Method | Path | Description |
-|---|---|---|
-| POST | `/auth/register` | Register with `full_name`, `email`, `password` |
-| POST | `/auth/login` | Login and receive JWT |
-| GET | `/auth/me` | Current profile |
-| PATCH | `/auth/profile` | Update profile |
+**Tên**: Health Check
 
-## Trips and members
+**Thông tin Endpoint:**
+| Thuộc tính | Giá trị |
+|---|---|
+| Xác thực (Authentication) | Không |
+| Content-Type | application/json |
 
-| Method | Path | Description |
-|---|---|---|
-| GET, POST | `/trips` | List/create trips |
-| GET, PATCH, DELETE | `/trips/:tripId` | Read/update/delete trip |
-| GET, POST | `/trips/:tripId/members` | List/invite members |
-| PATCH, DELETE | `/trips/:tripId/members/:userId` | Update/remove member |
+**Phản hồi (Responses):**
+| Mã trạng thái | Mô tả |
+|---|---|
+| 200 | Successful Response |
 
-Only the owner can delete trips, invite/remove members, update roles, and update the fund target.
+---
 
-## Itinerary, funds, and expenses
+## auth
 
-| Method | Path | Description |
-|---|---|---|
-| GET, POST | `/trips/:tripId/activities` | List/create activities |
-| GET, PATCH, DELETE | `/activities/:activityId` | Activity detail/update/delete |
-| GET, PATCH | `/trips/:tripId/fund` | Fund summary/update target |
-| GET, POST | `/trips/:tripId/contributions` | List/add contributions |
-| PATCH | `/contributions/:contributionId` | Update contribution |
-| GET, POST | `/trips/:tripId/expenses` | List/add expenses |
-| GET, PATCH, DELETE | `/expenses/:expenseId` | Expense detail/update/delete |
-| POST | `/expenses/:expenseId/split` | Generate equal splits |
-| GET | `/trips/:tripId/settlements` | Settlement summary |
-| PATCH | `/splits/:splitId/settled` | Mark split settled |
+### POST `/api/auth/register`
 
-### Quy tắc quỹ chung và chi tiêu
+**Tên**: Register
 
-Mỗi khoản chi phải có một `payment_source`:
+**Thông tin Endpoint:**
+| Thuộc tính | Giá trị |
+|---|---|
+| Xác thực (Authentication) | Không |
+| Content-Type | application/json |
 
-- `shared_fund`: chi trực tiếp từ quỹ chung. Chỉ chủ chuyến được tạo, số tiền không được vượt số dư quỹ, `paid_by` phải là `null`, và khoản chi không tạo công nợ.
-- `personal`: thành viên trả hộ. Khoản chi không làm giảm số dư quỹ, `paid_by` phải là thành viên của chuyến đi, và `participants` bắt buộc chứa đúng những người được thanh toán hộ.
-- Khi gọi endpoint chia tiền, backend chỉ chia đều cho danh sách `participants` đã lưu; client không thể tự thay danh sách ở bước chia.
+**Body Request:**
+- Tham chiếu Schema: `UserCreate`
 
-Các công thức được dùng thống nhất:
+**Phản hồi (Responses):**
+| Mã trạng thái | Mô tả |
+|---|---|
+| 201 | Successful Response |
+| 422 | Validation Error |
 
-```text
-Số dư quỹ = tổng đóng góp thành công - tổng khoản chi shared_fund
-Tổng chi chuyến đi = tổng khoản chi shared_fund + tổng khoản chi personal
-```
+---
 
-`GET /trips/:tripId/fund` trả các trường rõ nghĩa: `total_collected`, `fund_spent`, `personal_spent`, `total_trip_expenses`, `current_balance` và `remaining_to_target`.
+### POST `/api/auth/login`
 
-Ví dụ tạo khoản thành viên trả hộ:
+**Tên**: Login
 
-```json
-{
-  "title": "Ăn tối",
-  "amount": 600000,
-  "category": "food",
-  "payment_source": "personal",
-  "paid_by": "uuid-nguoi-tra-ho",
-  "participants": [
-    "uuid-nguoi-duoc-tra-ho-1",
-    "uuid-nguoi-duoc-tra-ho-2"
-  ]
-}
-```
+**Thông tin Endpoint:**
+| Thuộc tính | Giá trị |
+|---|---|
+| Xác thực (Authentication) | Không |
+| Content-Type | application/json |
 
-Ví dụ tạo khoản chi từ quỹ chung:
+**Body Request:**
+- Tham chiếu Schema: `UserLogin`
 
-```json
-{
-  "title": "Vé tham quan",
-  "amount": 300000,
-  "category": "ticket",
-  "payment_source": "shared_fund"
-}
-```
+**Phản hồi (Responses):**
+| Mã trạng thái | Mô tả |
+|---|---|
+| 200 | Successful Response |
+| 422 | Validation Error |
 
-## Dashboard, reminders, notifications, uploads
+---
 
-| Method | Path | Description |
-|---|---|---|
-| GET | `/trips/:tripId/dashboard` | Trip dashboard |
-| GET | `/trips/:tripId/financial-summary` | Financial dashboard |
-| GET, POST | `/trips/:tripId/reminders` | Reminder history/create reminder |
-| GET | `/notifications` | Current user's notifications |
-| PATCH | `/notifications/:notificationId/read` | Mark notification read |
-| PUT | `/notifications/push-token` | Register/update current device Expo push token |
-| DELETE | `/notifications/push-token` | Remove current device Expo push token |
-| POST | `/upload/bill` | Upload bill image |
-| POST | `/upload/payment-proof` | Upload payment proof |
-| POST | `/upload/avatar` | Upload avatar |
-| POST | `/upload/trip-cover` | Upload cover |
+### GET `/api/auth/me`
 
-## Thanh toán MoMo
+**Tên**: Me
 
-| Method | Path | Description |
-|---|---|---|
-| POST | `/trips/:tripId/contributions/momo/create` | Tạo yêu cầu đóng góp qua MoMo |
-| POST | `/payments/momo/ipn` | IPN công khai để MoMo gửi kết quả; backend xác minh chữ ký |
-| GET | `/payments/momo/return` | Redirect từ MoMo sau khi thanh toán |
-| GET | `/payments/:paymentId/status` | Kiểm tra trạng thái payment trong database |
-| POST | `/payments/momo/query` | Truy vấn trạng thái trực tiếp từ MoMo |
-| GET, POST | `/payments/:paymentId/mock`, `/payments/:paymentId/mock-success` | Trang demo, chỉ hoạt động khi `MOMO_ENV=mock` |
+**Thông tin Endpoint:**
+| Thuộc tính | Giá trị |
+|---|---|
+| Xác thực (Authentication) | Có |
+| Content-Type | application/json |
 
-Body tạo thanh toán:
+**Phản hồi (Responses):**
+| Mã trạng thái | Mô tả |
+|---|---|
+| 200 | Successful Response |
 
-```json
-{
-  "amount": 100000,
-  "member_id": "uuid-thanh-vien-tuy-chon",
-  "return_url": "ustrip://payment-return"
-}
-```
+---
 
-`return_url` là tùy chọn. Backend chỉ chấp nhận scheme mobile `ustrip://` hoặc cùng origin với `CLIENT_URL`, tránh open redirect. Kết quả thanh toán chính thức luôn được xác nhận ở backend qua IPN/query, không tin trực tiếp tham số trả về từ client.
+### PATCH `/api/auth/profile`
 
-Validation errors return HTTP `422`; unauthenticated and unauthorized requests return `401` and `403`.
+**Tên**: Update Profile
+
+**Thông tin Endpoint:**
+| Thuộc tính | Giá trị |
+|---|---|
+| Xác thực (Authentication) | Có |
+| Content-Type | application/json |
+
+**Body Request:**
+- Tham chiếu Schema: `UserProfileUpdate`
+
+**Phản hồi (Responses):**
+| Mã trạng thái | Mô tả |
+|---|---|
+| 200 | Successful Response |
+| 422 | Validation Error |
+
+---
+
+## trips
+
+### GET `/api/trips`
+
+**Tên**: List Trips
+
+**Thông tin Endpoint:**
+| Thuộc tính | Giá trị |
+|---|---|
+| Xác thực (Authentication) | Có |
+| Content-Type | application/json |
+
+**Phản hồi (Responses):**
+| Mã trạng thái | Mô tả |
+|---|---|
+| 200 | Successful Response |
+
+---
+
+### POST `/api/trips`
+
+**Tên**: Create Trip
+
+**Thông tin Endpoint:**
+| Thuộc tính | Giá trị |
+|---|---|
+| Xác thực (Authentication) | Có |
+| Content-Type | application/json |
+
+**Body Request:**
+- Tham chiếu Schema: `TripCreate`
+
+**Phản hồi (Responses):**
+| Mã trạng thái | Mô tả |
+|---|---|
+| 201 | Successful Response |
+| 422 | Validation Error |
+
+---
+
+### GET `/api/trips/{tripId}`
+
+**Tên**: Get Trip
+
+**Thông tin Endpoint:**
+| Thuộc tính | Giá trị |
+|---|---|
+| Xác thực (Authentication) | Có |
+| Content-Type | application/json |
+
+**Phản hồi (Responses):**
+| Mã trạng thái | Mô tả |
+|---|---|
+| 200 | Successful Response |
+
+---
+
+### DELETE `/api/trips/{tripId}`
+
+**Tên**: Delete Trip
+
+**Thông tin Endpoint:**
+| Thuộc tính | Giá trị |
+|---|---|
+| Xác thực (Authentication) | Có |
+| Content-Type | application/json |
+
+**Phản hồi (Responses):**
+| Mã trạng thái | Mô tả |
+|---|---|
+| 204 | Successful Response |
+
+---
+
+### PATCH `/api/trips/{tripId}`
+
+**Tên**: Update Trip
+
+**Thông tin Endpoint:**
+| Thuộc tính | Giá trị |
+|---|---|
+| Xác thực (Authentication) | Có |
+| Content-Type | application/json |
+
+**Body Request:**
+- Tham chiếu Schema: `TripUpdate`
+
+**Phản hồi (Responses):**
+| Mã trạng thái | Mô tả |
+|---|---|
+| 200 | Successful Response |
+| 422 | Validation Error |
+
+---
+
+### GET `/api/trips/{tripId}/members`
+
+**Tên**: List Members
+
+**Thông tin Endpoint:**
+| Thuộc tính | Giá trị |
+|---|---|
+| Xác thực (Authentication) | Có |
+| Content-Type | application/json |
+
+**Phản hồi (Responses):**
+| Mã trạng thái | Mô tả |
+|---|---|
+| 200 | Successful Response |
+
+---
+
+### POST `/api/trips/{tripId}/members`
+
+**Tên**: Add Member
+
+**Thông tin Endpoint:**
+| Thuộc tính | Giá trị |
+|---|---|
+| Xác thực (Authentication) | Có |
+| Content-Type | application/json |
+
+**Body Request:**
+- Tham chiếu Schema: `AddMemberRequest`
+
+**Phản hồi (Responses):**
+| Mã trạng thái | Mô tả |
+|---|---|
+| 201 | Successful Response |
+| 422 | Validation Error |
+
+---
+
+### DELETE `/api/trips/{tripId}/members/{userId}`
+
+**Tên**: Remove Member
+
+**Thông tin Endpoint:**
+| Thuộc tính | Giá trị |
+|---|---|
+| Xác thực (Authentication) | Có |
+| Content-Type | application/json |
+
+**Phản hồi (Responses):**
+| Mã trạng thái | Mô tả |
+|---|---|
+| 204 | Successful Response |
+
+---
+
+### PATCH `/api/trips/{tripId}/members/{userId}`
+
+**Tên**: Update Member
+
+**Thông tin Endpoint:**
+| Thuộc tính | Giá trị |
+|---|---|
+| Xác thực (Authentication) | Có |
+| Content-Type | application/json |
+
+**Body Request:**
+- Tham chiếu Schema: `UpdateMemberRequest`
+
+**Phản hồi (Responses):**
+| Mã trạng thái | Mô tả |
+|---|---|
+| 200 | Successful Response |
+| 422 | Validation Error |
+
+---
+
+### GET `/api/trips/{tripId}/reminders`
+
+**Tên**: List Reminders
+
+**Thông tin Endpoint:**
+| Thuộc tính | Giá trị |
+|---|---|
+| Xác thực (Authentication) | Có |
+| Content-Type | application/json |
+
+**Phản hồi (Responses):**
+| Mã trạng thái | Mô tả |
+|---|---|
+| 200 | Successful Response |
+
+---
+
+### POST `/api/trips/{tripId}/reminders`
+
+**Tên**: Create Reminder
+
+**Thông tin Endpoint:**
+| Thuộc tính | Giá trị |
+|---|---|
+| Xác thực (Authentication) | Có |
+| Content-Type | application/json |
+
+**Body Request:**
+- Tham chiếu Schema: `CreateReminderRequest`
+
+**Phản hồi (Responses):**
+| Mã trạng thái | Mô tả |
+|---|---|
+| 201 | Successful Response |
+| 422 | Validation Error |
+
+---
+
+## activities
+
+### GET `/api/trips/{tripId}/activities`
+
+**Tên**: List Activities
+
+**Thông tin Endpoint:**
+| Thuộc tính | Giá trị |
+|---|---|
+| Xác thực (Authentication) | Có |
+| Content-Type | application/json |
+
+**Phản hồi (Responses):**
+| Mã trạng thái | Mô tả |
+|---|---|
+| 200 | Successful Response |
+
+---
+
+### POST `/api/trips/{tripId}/activities`
+
+**Tên**: Create Activity
+
+**Thông tin Endpoint:**
+| Thuộc tính | Giá trị |
+|---|---|
+| Xác thực (Authentication) | Có |
+| Content-Type | application/json |
+
+**Body Request:**
+- Tham chiếu Schema: `ActivityCreate`
+
+**Phản hồi (Responses):**
+| Mã trạng thái | Mô tả |
+|---|---|
+| 201 | Successful Response |
+| 422 | Validation Error |
+
+---
+
+### GET `/api/activities/{activityId}`
+
+**Tên**: Get Activity
+
+**Thông tin Endpoint:**
+| Thuộc tính | Giá trị |
+|---|---|
+| Xác thực (Authentication) | Có |
+| Content-Type | application/json |
+
+**Phản hồi (Responses):**
+| Mã trạng thái | Mô tả |
+|---|---|
+| 200 | Successful Response |
+
+---
+
+### DELETE `/api/activities/{activityId}`
+
+**Tên**: Delete Activity
+
+**Thông tin Endpoint:**
+| Thuộc tính | Giá trị |
+|---|---|
+| Xác thực (Authentication) | Có |
+| Content-Type | application/json |
+
+**Phản hồi (Responses):**
+| Mã trạng thái | Mô tả |
+|---|---|
+| 204 | Successful Response |
+
+---
+
+### PATCH `/api/activities/{activityId}`
+
+**Tên**: Update Activity
+
+**Thông tin Endpoint:**
+| Thuộc tính | Giá trị |
+|---|---|
+| Xác thực (Authentication) | Có |
+| Content-Type | application/json |
+
+**Body Request:**
+- Tham chiếu Schema: `ActivityUpdate`
+
+**Phản hồi (Responses):**
+| Mã trạng thái | Mô tả |
+|---|---|
+| 200 | Successful Response |
+| 422 | Validation Error |
+
+---
+
+## funds
+
+### GET `/api/trips/{tripId}/fund`
+
+**Tên**: Get Fund
+
+**Thông tin Endpoint:**
+| Thuộc tính | Giá trị |
+|---|---|
+| Xác thực (Authentication) | Có |
+| Content-Type | application/json |
+
+**Phản hồi (Responses):**
+| Mã trạng thái | Mô tả |
+|---|---|
+| 200 | Successful Response |
+
+---
+
+### PATCH `/api/trips/{tripId}/fund`
+
+**Tên**: Update Fund
+
+**Thông tin Endpoint:**
+| Thuộc tính | Giá trị |
+|---|---|
+| Xác thực (Authentication) | Có |
+| Content-Type | application/json |
+
+**Body Request:**
+- Tham chiếu Schema: `FundUpdate`
+
+**Phản hồi (Responses):**
+| Mã trạng thái | Mô tả |
+|---|---|
+| 200 | Successful Response |
+| 422 | Validation Error |
+
+---
+
+### GET `/api/trips/{tripId}/contributions`
+
+**Tên**: List Contributions
+
+**Thông tin Endpoint:**
+| Thuộc tính | Giá trị |
+|---|---|
+| Xác thực (Authentication) | Có |
+| Content-Type | application/json |
+
+**Phản hồi (Responses):**
+| Mã trạng thái | Mô tả |
+|---|---|
+| 200 | Successful Response |
+
+---
+
+### POST `/api/trips/{tripId}/contributions`
+
+**Tên**: Add Contribution
+
+**Thông tin Endpoint:**
+| Thuộc tính | Giá trị |
+|---|---|
+| Xác thực (Authentication) | Có |
+| Content-Type | application/json |
+
+**Body Request:**
+- Tham chiếu Schema: `ContributionCreate`
+
+**Phản hồi (Responses):**
+| Mã trạng thái | Mô tả |
+|---|---|
+| 201 | Successful Response |
+| 422 | Validation Error |
+
+---
+
+### PATCH `/api/contributions/{contributionId}`
+
+**Tên**: Update Contribution
+
+**Thông tin Endpoint:**
+| Thuộc tính | Giá trị |
+|---|---|
+| Xác thực (Authentication) | Có |
+| Content-Type | application/json |
+
+**Body Request:**
+- Tham chiếu Schema: `ContributionUpdate`
+
+**Phản hồi (Responses):**
+| Mã trạng thái | Mô tả |
+|---|---|
+| 200 | Successful Response |
+| 422 | Validation Error |
+
+---
+
+## expenses
+
+### GET `/api/trips/{tripId}/expenses`
+
+**Tên**: List Expenses
+
+**Thông tin Endpoint:**
+| Thuộc tính | Giá trị |
+|---|---|
+| Xác thực (Authentication) | Có |
+| Content-Type | application/json |
+
+**Phản hồi (Responses):**
+| Mã trạng thái | Mô tả |
+|---|---|
+| 200 | Successful Response |
+
+---
+
+### POST `/api/trips/{tripId}/expenses`
+
+**Tên**: Create Expense
+
+**Thông tin Endpoint:**
+| Thuộc tính | Giá trị |
+|---|---|
+| Xác thực (Authentication) | Có |
+| Content-Type | application/json |
+
+**Body Request:**
+- Tham chiếu Schema: `ExpenseCreate`
+
+**Phản hồi (Responses):**
+| Mã trạng thái | Mô tả |
+|---|---|
+| 201 | Successful Response |
+| 422 | Validation Error |
+
+---
+
+### GET `/api/expenses/{expenseId}`
+
+**Tên**: Get Expense
+
+**Thông tin Endpoint:**
+| Thuộc tính | Giá trị |
+|---|---|
+| Xác thực (Authentication) | Có |
+| Content-Type | application/json |
+
+**Phản hồi (Responses):**
+| Mã trạng thái | Mô tả |
+|---|---|
+| 200 | Successful Response |
+
+---
+
+### DELETE `/api/expenses/{expenseId}`
+
+**Tên**: Delete Expense
+
+**Thông tin Endpoint:**
+| Thuộc tính | Giá trị |
+|---|---|
+| Xác thực (Authentication) | Có |
+| Content-Type | application/json |
+
+**Phản hồi (Responses):**
+| Mã trạng thái | Mô tả |
+|---|---|
+| 204 | Successful Response |
+
+---
+
+### PATCH `/api/expenses/{expenseId}`
+
+**Tên**: Update Expense
+
+**Thông tin Endpoint:**
+| Thuộc tính | Giá trị |
+|---|---|
+| Xác thực (Authentication) | Có |
+| Content-Type | application/json |
+
+**Body Request:**
+- Tham chiếu Schema: `ExpenseUpdate`
+
+**Phản hồi (Responses):**
+| Mã trạng thái | Mô tả |
+|---|---|
+| 200 | Successful Response |
+| 422 | Validation Error |
+
+---
+
+### POST `/api/expenses/{expenseId}/split`
+
+**Tên**: Split Expense
+
+**Thông tin Endpoint:**
+| Thuộc tính | Giá trị |
+|---|---|
+| Xác thực (Authentication) | Có |
+| Content-Type | application/json |
+
+**Phản hồi (Responses):**
+| Mã trạng thái | Mô tả |
+|---|---|
+| 201 | Successful Response |
+
+---
+
+### GET `/api/trips/{tripId}/settlements`
+
+**Tên**: Get Settlements
+
+**Thông tin Endpoint:**
+| Thuộc tính | Giá trị |
+|---|---|
+| Xác thực (Authentication) | Có |
+| Content-Type | application/json |
+
+**Phản hồi (Responses):**
+| Mã trạng thái | Mô tả |
+|---|---|
+| 200 | Successful Response |
+
+---
+
+### PATCH `/api/splits/{splitId}/settled`
+
+**Tên**: Settle Split
+
+**Thông tin Endpoint:**
+| Thuộc tính | Giá trị |
+|---|---|
+| Xác thực (Authentication) | Có |
+| Content-Type | application/json |
+
+**Body Request:**
+- Tham chiếu Schema: `SettleSplitRequest`
+
+**Phản hồi (Responses):**
+| Mã trạng thái | Mô tả |
+|---|---|
+| 200 | Successful Response |
+| 422 | Validation Error |
+
+---
+
+### GET `/api/trips/{tripId}/optimized-settlements`
+
+**Tên**: Get Optimized Settlements
+
+**Thông tin Endpoint:**
+| Thuộc tính | Giá trị |
+|---|---|
+| Xác thực (Authentication) | Có |
+| Content-Type | application/json |
+
+**Phản hồi (Responses):**
+| Mã trạng thái | Mô tả |
+|---|---|
+| 200 | Successful Response |
+
+---
+
+## dashboard
+
+### GET `/api/trips/{tripId}/financial-summary`
+
+**Tên**: Financial Summary
+
+**Thông tin Endpoint:**
+| Thuộc tính | Giá trị |
+|---|---|
+| Xác thực (Authentication) | Có |
+| Content-Type | application/json |
+
+**Phản hồi (Responses):**
+| Mã trạng thái | Mô tả |
+|---|---|
+| 200 | Successful Response |
+
+---
+
+### GET `/api/trips/{tripId}/dashboard`
+
+**Tên**: Dashboard
+
+**Thông tin Endpoint:**
+| Thuộc tính | Giá trị |
+|---|---|
+| Xác thực (Authentication) | Có |
+| Content-Type | application/json |
+
+**Phản hồi (Responses):**
+| Mã trạng thái | Mô tả |
+|---|---|
+| 200 | Successful Response |
+
+---
+
+## misc
+
+### GET `/api/notifications`
+
+**Tên**: Get Notifications
+
+**Thông tin Endpoint:**
+| Thuộc tính | Giá trị |
+|---|---|
+| Xác thực (Authentication) | Có |
+| Content-Type | application/json |
+
+**Phản hồi (Responses):**
+| Mã trạng thái | Mô tả |
+|---|---|
+| 200 | Successful Response |
+
+---
+
+### PATCH `/api/notifications/{notificationId}/read`
+
+**Tên**: Read Notification
+
+**Thông tin Endpoint:**
+| Thuộc tính | Giá trị |
+|---|---|
+| Xác thực (Authentication) | Có |
+| Content-Type | application/json |
+
+**Phản hồi (Responses):**
+| Mã trạng thái | Mô tả |
+|---|---|
+| 200 | Successful Response |
+
+---
+
+### PUT `/api/notifications/push-token`
+
+**Tên**: Register Push Token
+
+**Thông tin Endpoint:**
+| Thuộc tính | Giá trị |
+|---|---|
+| Xác thực (Authentication) | Có |
+| Content-Type | application/json |
+
+**Body Request:**
+- Tham chiếu Schema: `PushTokenRequest`
+
+**Phản hồi (Responses):**
+| Mã trạng thái | Mô tả |
+|---|---|
+| 200 | Successful Response |
+| 422 | Validation Error |
+
+---
+
+### DELETE `/api/notifications/push-token`
+
+**Tên**: Remove Push Token
+
+**Thông tin Endpoint:**
+| Thuộc tính | Giá trị |
+|---|---|
+| Xác thực (Authentication) | Có |
+| Content-Type | application/json |
+
+**Body Request:**
+- Tham chiếu Schema: `RemovePushTokenRequest`
+
+**Phản hồi (Responses):**
+| Mã trạng thái | Mô tả |
+|---|---|
+| 204 | Successful Response |
+| 422 | Validation Error |
+
+---
+
+### POST `/api/upload/{kind}`
+
+**Tên**: Upload Image
+
+**Thông tin Endpoint:**
+| Thuộc tính | Giá trị |
+|---|---|
+| Xác thực (Authentication) | Có |
+| Content-Type | application/json |
+
+**Body Request:**
+
+**Phản hồi (Responses):**
+| Mã trạng thái | Mô tả |
+|---|---|
+| 201 | Successful Response |
+| 422 | Validation Error |
+
+---
+
+## ai
+
+### POST `/api/trips/{tripId}/ai/itinerary`
+
+**Tên**: Suggest Itinerary
+
+**Thông tin Endpoint:**
+| Thuộc tính | Giá trị |
+|---|---|
+| Xác thực (Authentication) | Có |
+| Content-Type | application/json |
+
+**Body Request:**
+- Tham chiếu Schema: `SuggestItineraryRequest`
+
+**Phản hồi (Responses):**
+| Mã trạng thái | Mô tả |
+|---|---|
+| 200 | Successful Response |
+| 422 | Validation Error |
+
+---
+
+### POST `/api/trips/{tripId}/ai/places`
+
+**Tên**: Suggest Places
+
+**Thông tin Endpoint:**
+| Thuộc tính | Giá trị |
+|---|---|
+| Xác thực (Authentication) | Có |
+| Content-Type | application/json |
+
+**Body Request:**
+- Tham chiếu Schema: `SuggestPlacesRequest`
+
+**Phản hồi (Responses):**
+| Mã trạng thái | Mô tả |
+|---|---|
+| 200 | Successful Response |
+| 422 | Validation Error |
+
+---
+
+## chat
+
+### GET `/api/trips/{tripId}/messages`
+
+**Tên**: Get Messages
+
+**Thông tin Endpoint:**
+| Thuộc tính | Giá trị |
+|---|---|
+| Xác thực (Authentication) | Có |
+| Content-Type | application/json |
+
+**Phản hồi (Responses):**
+| Mã trạng thái | Mô tả |
+|---|---|
+| 200 | Successful Response |
+
+---
+
+### POST `/api/trips/{tripId}/messages`
+
+**Tên**: Send Message
+
+**Thông tin Endpoint:**
+| Thuộc tính | Giá trị |
+|---|---|
+| Xác thực (Authentication) | Có |
+| Content-Type | application/json |
+
+**Body Request:**
+- Tham chiếu Schema: `SendMessageRequest`
+
+**Phản hồi (Responses):**
+| Mã trạng thái | Mô tả |
+|---|---|
+| 201 | Successful Response |
+| 422 | Validation Error |
+
+---
+
+## payments
+
+### POST `/api/trips/{tripId}/contributions/momo/create`
+
+**Tên**: Create
+
+**Thông tin Endpoint:**
+| Thuộc tính | Giá trị |
+|---|---|
+| Xác thực (Authentication) | Có |
+| Content-Type | application/json |
+
+**Body Request:**
+- Tham chiếu Schema: `PaymentCreateRequest`
+
+**Phản hồi (Responses):**
+| Mã trạng thái | Mô tả |
+|---|---|
+| 201 | Successful Response |
+| 422 | Validation Error |
+
+---
+
+### POST `/api/payments/momo/ipn`
+
+**Tên**: Ipn
+
+**Thông tin Endpoint:**
+| Thuộc tính | Giá trị |
+|---|---|
+| Xác thực (Authentication) | Không |
+| Content-Type | application/json |
+
+**Phản hồi (Responses):**
+| Mã trạng thái | Mô tả |
+|---|---|
+| 204 | Successful Response |
+
+---
+
+### GET `/api/payments/momo/return`
+
+**Tên**: Return Result
+
+**Thông tin Endpoint:**
+| Thuộc tính | Giá trị |
+|---|---|
+| Xác thực (Authentication) | Không |
+| Content-Type | application/json |
+
+**Phản hồi (Responses):**
+| Mã trạng thái | Mô tả |
+|---|---|
+| 200 | Successful Response |
+
+---
+
+### GET `/api/payments/{paymentId}/status`
+
+**Tên**: Payment Status
+
+**Thông tin Endpoint:**
+| Thuộc tính | Giá trị |
+|---|---|
+| Xác thực (Authentication) | Có |
+| Content-Type | application/json |
+
+**Phản hồi (Responses):**
+| Mã trạng thái | Mô tả |
+|---|---|
+| 200 | Successful Response |
+
+---
+
+### POST `/api/payments/momo/query`
+
+**Tên**: Query
+
+**Thông tin Endpoint:**
+| Thuộc tính | Giá trị |
+|---|---|
+| Xác thực (Authentication) | Có |
+| Content-Type | application/json |
+
+**Body Request:**
+- Tham chiếu Schema: `PaymentQueryRequest`
+
+**Phản hồi (Responses):**
+| Mã trạng thái | Mô tả |
+|---|---|
+| 200 | Successful Response |
+| 422 | Validation Error |
+
+---
+
+### GET `/api/payments/{paymentId}/mock`
+
+**Tên**: Mock Page
+
+**Thông tin Endpoint:**
+| Thuộc tính | Giá trị |
+|---|---|
+| Xác thực (Authentication) | Không |
+| Content-Type | application/json |
+
+**Phản hồi (Responses):**
+| Mã trạng thái | Mô tả |
+|---|---|
+| 200 | Successful Response |
+
+---
+
+### GET `/api/payments/{paymentId}/mock-success`
+
+**Tên**: Mock Success
+
+**Thông tin Endpoint:**
+| Thuộc tính | Giá trị |
+|---|---|
+| Xác thực (Authentication) | Không |
+| Content-Type | application/json |
+
+**Phản hồi (Responses):**
+| Mã trạng thái | Mô tả |
+|---|---|
+| 200 | Successful Response |
+
+---
+
+### POST `/api/payments/{paymentId}/mock-success`
+
+**Tên**: Mock Success
+
+**Thông tin Endpoint:**
+| Thuộc tính | Giá trị |
+|---|---|
+| Xác thực (Authentication) | Không |
+| Content-Type | application/json |
+
+**Phản hồi (Responses):**
+| Mã trạng thái | Mô tả |
+|---|---|
+| 200 | Successful Response |
+
+---
+
+## mock-ota
+
+### GET `/api/trips/{tripId}/mock-ota/services`
+
+**Tên**: Get Mock Services
+
+**Thông tin Endpoint:**
+| Thuộc tính | Giá trị |
+|---|---|
+| Xác thực (Authentication) | Có |
+| Content-Type | application/json |
+
+**Phản hồi (Responses):**
+| Mã trạng thái | Mô tả |
+|---|---|
+| 200 | Successful Response |
+
+---
+
+### POST `/api/trips/{tripId}/mock-ota/book`
+
+**Tên**: Book Mock Service
+
+**Thông tin Endpoint:**
+| Thuộc tính | Giá trị |
+|---|---|
+| Xác thực (Authentication) | Có |
+| Content-Type | application/json |
+
+**Body Request:**
+- Tham chiếu Schema: `BookServiceRequest`
+
+**Phản hồi (Responses):**
+| Mã trạng thái | Mô tả |
+|---|---|
+| 200 | Successful Response |
+| 422 | Validation Error |
+
+---
+

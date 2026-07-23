@@ -1,10 +1,11 @@
 import * as SecureStore from 'expo-secure-store';
 import * as ImagePicker from 'expo-image-picker';
+import { Platform } from 'react-native';
 
 export const BASE = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 export async function api(path, options = {}) {
-  const token = await SecureStore.getItemAsync('ustrip_token');
+  const token = await getToken();
   let response;
   try {
     response = await fetch(`${BASE}${path}`, {
@@ -25,10 +26,10 @@ export async function api(path, options = {}) {
   return data;
 }
 
-export async function saveToken(token) { await SecureStore.setItemAsync('ustrip_token', token); }
-export async function removeToken() { await SecureStore.deleteItemAsync('ustrip_token'); }
-export async function hasToken() { return Boolean(await SecureStore.getItemAsync('ustrip_token')); }
-export async function getToken() { return await SecureStore.getItemAsync('ustrip_token'); }
+export async function saveToken(token) { if (Platform.OS === 'web') { localStorage.setItem('ustrip_token', token); } else { await SecureStore.setItemAsync('ustrip_token', token); } }
+export async function removeToken() { if (Platform.OS === 'web') { localStorage.removeItem('ustrip_token'); } else { await SecureStore.deleteItemAsync('ustrip_token'); } }
+export async function getToken() { if (Platform.OS === 'web') { return localStorage.getItem('ustrip_token'); } else { return await SecureStore.getItemAsync('ustrip_token'); } }
+export async function hasToken() { return Boolean(await getToken()); }
 export const money = (value = 0) => `${new Intl.NumberFormat('vi-VN').format(Number(value))}đ`;
 
 export async function pickAndUploadImage(type = 'bill') {

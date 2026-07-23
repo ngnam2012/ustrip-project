@@ -1,4 +1,4 @@
-import { Bell, Bot, CalendarDays, ChartPie, CircleDollarSign, Compass, LogOut, Menu, Settings, Users, WalletCards, X, MapPin, MessageSquare } from 'lucide-react';
+import { Bell, Bot, CalendarDays, ChartPie, CircleDollarSign, Compass, LogOut, Menu, Settings, Users, WalletCards, X, MapPin, MessageSquare, ShoppingBag } from 'lucide-react';
 import { useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -10,7 +10,7 @@ const tripItems = [
   ['Tổng quan', '', Compass], ['Lịch trình', 'itinerary', CalendarDays], ['Thành viên', 'members', Users],
   ['Quỹ chung', 'fund', WalletCards], ['Chi tiêu', 'expenses', CircleDollarSign], ['Chia tiền', 'settlements', ChartPie],
   ['Thống kê', 'finance', ChartPie], ['Nhắc thanh toán', 'reminders', Bell], ['Gợi ý AI', 'ai', Bot],
-  ['Gợi ý địa điểm', 'ai-places', MapPin], ['Trò chuyện', 'chat', MessageSquare]
+  ['Gợi ý địa điểm', 'ai-places', MapPin], ['Dịch vụ OTA', 'ota', ShoppingBag], ['Trò chuyện', 'chat', MessageSquare]
 ];
 
 function SidebarLink({ to, icon: Icon, label, end }) {

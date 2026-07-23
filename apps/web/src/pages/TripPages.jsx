@@ -17,7 +17,9 @@ const statIcons = [
 ];
 
 export function TripsPage() {
-  const { data, loading, error, reload } = useRemote('/trips'); const [show, setShow] = useState(false);
+  const { data, loading, error, reload } = useRemote('/trips');
+  const [show, setShow] = useState(false);
+  
   if (loading) return <Loader/>;
   return <>
     <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
@@ -82,23 +84,106 @@ export function TripsPage() {
         )}
       </div>
     )}
-    {show&&<TripForm onClose={()=>setShow(false)} onSaved={()=>{setShow(false);reload();}}/>}
+    {show && (
+      <TripForm
+        onClose={() => setShow(false)}
+        onSaved={() => {
+          setShow(false);
+          reload();
+        }}
+      />
+    )}
   </>;
 }
 
 function TripForm({ onClose, onSaved }) {
-  const navigate=useNavigate(); const [form,setForm]=useState({name:'',destination:'',start_date:'',end_date:'',estimated_budget:'',description:''}); const [error,setError]=useState('');
-  const submit=async(e)=>{e.preventDefault();try{const trip=await api('/trips',{method:'POST',body:form});onSaved();navigate(`/trips/${trip.id}`);}catch(err){setError(err.message)}};
+  const navigate = useNavigate();
+  const [form, setForm] = useState({
+    name: '',
+    destination: '',
+    start_date: '',
+    end_date: '',
+    estimated_budget: '',
+    description: ''
+  });
+  const [error, setError] = useState('');
+  
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!form.estimated_budget) {
+      setError('Vui lòng nhập ngân sách dự kiến (nhập 0 nếu chưa có).');
+      return;
+    }
+    try {
+      const trip = await api('/trips', { method: 'POST', body: form });
+      onSaved();
+      navigate(`/trips/${trip.id}`);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
   return <Modal title="Tạo chuyến đi mới" onClose={onClose}>
     <form onSubmit={submit}>
       <ErrorBox message={error}/>
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="sm:col-span-2"><label>Tên chuyến đi</label><input required placeholder="VD: Phượt Đà Lạt" value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/></div>
-        <div className="sm:col-span-2"><label>Điểm đến</label><input required placeholder="VD: Đà Lạt, Lâm Đồng" value={form.destination} onChange={e=>setForm({...form,destination:e.target.value})}/></div>
-        <div><label>Ngày bắt đầu</label><input required type="date" value={form.start_date} onChange={e=>setForm({...form,start_date:e.target.value})}/></div>
-        <div><label>Ngày kết thúc</label><input required type="date" value={form.end_date} onChange={e=>setForm({...form,end_date:e.target.value})}/></div>
-        <div className="sm:col-span-2"><label>Ngân sách dự kiến</label><input type="text" placeholder="VD: 5,000,000" value={form.estimated_budget ? Number(String(form.estimated_budget).replace(/[^0-9]/g, '')).toLocaleString() : ''} onChange={e=>{const val = e.target.value.replace(/[^0-9]/g, ''); setForm({...form,estimated_budget:val})}}/></div>
-        <div className="sm:col-span-2"><label>Mô tả</label><textarea rows="3" placeholder="Ghi chú thêm cho chuyến đi..." value={form.description} onChange={e=>setForm({...form,description:e.target.value})}/></div>
+        <div className="sm:col-span-2">
+          <label>Tên chuyến đi</label>
+          <input
+            required
+            placeholder="VD: Phượt Đà Lạt"
+            value={form.name}
+            onChange={e => setForm({ ...form, name: e.target.value })}
+          />
+        </div>
+        <div className="sm:col-span-2">
+          <label>Điểm đến</label>
+          <input
+            required
+            placeholder="VD: Đà Lạt, Lâm Đồng"
+            value={form.destination}
+            onChange={e => setForm({ ...form, destination: e.target.value })}
+          />
+        </div>
+        <div>
+          <label>Ngày bắt đầu</label>
+          <input
+            required
+            type="date"
+            value={form.start_date}
+            onChange={e => setForm({ ...form, start_date: e.target.value })}
+          />
+        </div>
+        <div>
+          <label>Ngày kết thúc</label>
+          <input
+            required
+            type="date"
+            value={form.end_date}
+            onChange={e => setForm({ ...form, end_date: e.target.value })}
+          />
+        </div>
+        <div className="sm:col-span-2">
+          <label>Ngân sách dự kiến</label>
+          <input
+            required
+            type="text"
+            placeholder="VD: 5,000,000"
+            value={form.estimated_budget ? Number(String(form.estimated_budget).replace(/[^0-9]/g, '')).toLocaleString() : ''}
+            onChange={e => {
+              const val = e.target.value.replace(/[^0-9]/g, '');
+              setForm({ ...form, estimated_budget: val });
+            }}
+          />
+        </div>
+        <div className="sm:col-span-2">
+          <label>Mô tả</label>
+          <textarea
+            rows="3"
+            placeholder="Ghi chú thêm cho chuyến đi..."
+            value={form.description}
+            onChange={e => setForm({ ...form, description: e.target.value })}
+          />
+        </div>
       </div>
       <button className="btn-primary mt-6 w-full">Tạo chuyến đi</button>
     </form>
@@ -106,10 +191,14 @@ function TripForm({ onClose, onSaved }) {
 }
 
 export function TripOverview() {
-  const { tripId }=useParams(); const {data,loading,error}=useRemote(`/trips/${tripId}/dashboard`);
-  const finance=useRemote(`/trips/${tripId}/financial-summary`);
-  if(loading||finance.loading)return <Loader/>;
-  const f=finance.data||{}; const trip=data?.trip||{};
+  const { tripId } = useParams();
+  const { data, loading, error } = useRemote(`/trips/${tripId}/dashboard`);
+  const finance = useRemote(`/trips/${tripId}/financial-summary`);
+  
+  if (loading || finance.loading) return <Loader/>;
+  
+  const f = finance.data || {};
+  const trip = data?.trip || {};
   return <>
     <ErrorBox message={error||finance.error}/>
 
@@ -226,12 +315,49 @@ export function ProfilePage() {
 }
 
 function ProfileForm() {
-  const { user, setUser } = useAuth(); const [form,setForm]=useState({full_name:user?.full_name||'',phone:user?.phone||'',avatar_url:user?.avatar_url||''}); const [message,setMessage]=useState('');
-  const submit=async(e)=>{e.preventDefault();try{const updated=await api('/auth/profile',{method:'PATCH',body:form});setUser(updated);setMessage('Đã lưu thay đổi.');}catch(err){setMessage(err.message)}};
+  const { user, setUser } = useAuth();
+  const [form, setForm] = useState({
+    full_name: user?.full_name || '',
+    phone: user?.phone || '',
+    avatar_url: user?.avatar_url || ''
+  });
+  const [message, setMessage] = useState('');
+  
+  const submit = async (e) => {
+    e.preventDefault();
+    try {
+      const updated = await api('/auth/profile', { method: 'PATCH', body: form });
+      setUser(updated);
+      setMessage('Đã lưu thay đổi.');
+    } catch (err) {
+      setMessage(err.message);
+    }
+  };
   return <form onSubmit={submit} className="space-y-4">
-    <div><label>Họ và tên</label><input placeholder="Nguyễn Văn A" value={form.full_name} onChange={e=>setForm({...form,full_name:e.target.value})}/></div>
-    <div><label>Số điện thoại</label><input placeholder="0901234567" value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})}/></div>
-    <div><label>Avatar URL</label><input placeholder="https://..." value={form.avatar_url} onChange={e=>setForm({...form,avatar_url:e.target.value})}/></div>
+    <div>
+      <label>Họ và tên</label>
+      <input
+        placeholder="Nguyễn Văn A"
+        value={form.full_name}
+        onChange={e => setForm({ ...form, full_name: e.target.value })}
+      />
+    </div>
+    <div>
+      <label>Số điện thoại</label>
+      <input
+        placeholder="0901234567"
+        value={form.phone}
+        onChange={e => setForm({ ...form, phone: e.target.value })}
+      />
+    </div>
+    <div>
+      <label>Avatar URL</label>
+      <input
+        placeholder="https://..."
+        value={form.avatar_url}
+        onChange={e => setForm({ ...form, avatar_url: e.target.value })}
+      />
+    </div>
     {message&&<motion.p initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-2 text-sm font-semibold text-travel"><span className="h-1.5 w-1.5 rounded-full bg-travel" />{message}</motion.p>}
     <button className="btn-primary">Lưu hồ sơ</button>
   </form>;

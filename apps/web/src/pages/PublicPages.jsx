@@ -32,7 +32,10 @@ const stats = [
 ];
 
 export function Landing() {
-  const { user } = useAuth(); if (user) return <Navigate to="/app" replace />;
+  const { user } = useAuth();
+  if (user) {
+    return <Navigate to="/app" replace />;
+  }
   return <div className="min-h-screen bg-white overflow-hidden">
     {/* Nav */}
     <nav className="relative z-10 mx-auto flex max-w-7xl items-center justify-between px-5 py-5">
@@ -263,11 +266,27 @@ export function Landing() {
 }
 
 export function AuthPage({ mode }) {
-  const isRegister = mode === 'register'; const { user, login, register } = useAuth(); const navigate = useNavigate();
-  const [form, setForm] = useState({ full_name: '', email: '', password: '' }); const [error, setError] = useState(''); const [busy, setBusy] = useState(false);
+  const isRegister = mode === 'register';
+  const { user, login, register } = useAuth();
+  const navigate = useNavigate();
+  const [form, setForm] = useState({ full_name: '', email: '', password: '' });
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
   const [showPass, setShowPass] = useState(false);
   if (user) return <Navigate to="/app" replace />;
-  const submit = async (e) => { e.preventDefault(); setBusy(true); setError(''); try { await (isRegister ? register(form) : login(form)); navigate('/app'); } catch (err) { setError(err.message); } finally { setBusy(false); } };
+  const submit = async (e) => {
+    e.preventDefault();
+    setBusy(true);
+    setError('');
+    try {
+      await (isRegister ? register(form) : login(form));
+      navigate('/app');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
   return <div className="grid min-h-screen bg-white lg:grid-cols-2">
     {/* Left panel */}
     <div className="relative hidden overflow-hidden bg-gradient-to-br from-blue-700 via-blue-600 to-violet-700 p-12 text-white lg:flex lg:flex-col lg:justify-between">
@@ -305,18 +324,38 @@ export function AuthPage({ mode }) {
         <h1 className="text-3xl font-extrabold tracking-tight text-ink">{isRegister ? 'Tạo tài khoản' : 'Chào mừng trở lại'}</h1>
         <p className="mb-8 mt-2 text-slate-500">{isRegister ? 'Bắt đầu tổ chức chuyến đi của bạn.' : 'Đăng nhập để tiếp tục hành trình.'}</p>
         <ErrorBox message={error}/>
-        {isRegister && <div className="mb-4">
-          <label>Họ và tên</label>
-          <input required placeholder="Nguyễn Văn A" value={form.full_name} onChange={(e)=>setForm({...form,full_name:e.target.value})}/>
-        </div>}
+        {isRegister && (
+          <div className="mb-4">
+            <label>Họ và tên</label>
+            <input
+              required
+              placeholder="Nguyễn Văn A"
+              value={form.full_name}
+              onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+            />
+          </div>
+        )}
         <div className="mb-4">
           <label>Email</label>
-          <input required type="email" placeholder="email@example.com" value={form.email} onChange={(e)=>setForm({...form,email:e.target.value})}/>
+          <input
+            required
+            type="email"
+            placeholder="email@example.com"
+            value={form.email}
+            onChange={(e) => setForm({ ...form, email: e.target.value })}
+          />
         </div>
         <div className="mb-6">
           <label>Mật khẩu</label>
           <div className="relative">
-            <input required minLength={8} type={showPass ? 'text' : 'password'} placeholder="Tối thiểu 8 ký tự" value={form.password} onChange={(e)=>setForm({...form,password:e.target.value})}/>
+            <input
+              required
+              minLength={8}
+              type={showPass ? 'text' : 'password'}
+              placeholder="Tối thiểu 8 ký tự"
+              value={form.password}
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
+            />
             <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
               {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>

@@ -4,7 +4,21 @@ import { useAuth } from './context/AuthContext';
 import { Loader } from './components/ui';
 import { AuthPage, Landing } from './pages/PublicPages';
 import { ProfilePage, TripOverview, TripsPage } from './pages/TripPages';
-import { ActivityDetailPage, AiPage, ExpenseDetailPage, ExpensesPage, FinancePage, FundPage, ItineraryPage, MembersPage, NotificationsPage, PaymentDetailPage, RemindersPage, SettlementsPage, ChatPage, AiPlacesPage } from './pages/FeaturePages';
+import { ActivityDetailPage } from './pages/ActivityDetailPage';
+import { AiPage } from './pages/AiPage';
+import { ExpenseDetailPage } from './pages/ExpenseDetailPage';
+import { ExpensesPage } from './pages/ExpensesPage';
+import { FinancePage } from './pages/FinancePage';
+import { FundPage } from './pages/FundPage';
+import { ItineraryPage } from './pages/ItineraryPage';
+import { MembersPage } from './pages/MembersPage';
+import { NotificationsPage } from './pages/NotificationsPage';
+import { PaymentDetailPage } from './pages/PaymentDetailPage';
+import { RemindersPage } from './pages/RemindersPage';
+import { SettlementsPage } from './pages/SettlementsPage';
+import { ChatPage } from './pages/ChatPage';
+import { AiPlacesPage } from './pages/AiPlacesPage';
+import { OtaPage } from './pages/OtaPage';
 
 function Protected({ children }) {
   const { user, loading } = useAuth();
@@ -35,6 +49,7 @@ export default function App() {
       <Route path="/trips/:tripId/ai" element={<AiPage/>}/>
       <Route path="/trips/:tripId/chat" element={<ChatPage/>}/>
       <Route path="/trips/:tripId/ai-places" element={<AiPlacesPage/>}/>
+      <Route path="/trips/:tripId/ota" element={<OtaPage/>}/>
     </Route>
     <Route path="*" element={<Navigate to="/" replace/>}/>
   </Routes>;

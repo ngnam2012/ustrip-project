@@ -1,37 +1,39 @@
 import { StyleSheet, Platform } from 'react-native';
 
-/* ── Color Palette ─────────────────────────────────────────────── */
+/* ── Color Palette (Material Design 3 Inspired) ──────────────── */
 export const C = {
   // Primary
-  blue:       '#2563EB',
-  blueDark:   '#1E40AF',
-  blueLight:  '#DBEAFE',
-  blueSoft:   '#EFF6FF',
-
-  // Accent
-  orange:     '#F43F5E',
-  orangeLight:'#FFF1F2',
-  orangeDark: '#E11D48',
+  blue:       '#0058be', // primary
+  blueDark:   '#004395', // on-primary-fixed-variant
+  blueLight:  '#d8e2ff', // primary-fixed
+  blueSoft:   '#e6f0ff', // custom soft primary
+  
+  // Secondary / Accent
+  orange:     '#855316', // secondary
+  orangeLight:'#ffdcbd', // secondary-fixed
+  orangeDark: '#683c00', // on-secondary-fixed-variant
 
   // Semantic
-  mint:       '#059669',
+  mint:       '#059669', // kept for success
   mintLight:  '#D1FAE5',
-  gold:       '#D97706',
+  gold:       '#D97706', // kept for warning
   goldLight:  '#FEF3C7',
-  red:        '#DC2626',
-  redLight:   '#FEF2F2',
+  red:        '#ba1a1a', // error
+  redLight:   '#ffdad6', // error-container
 
   // Neutrals
-  bg:         '#F1F5F9',
-  surface:    '#FFFFFF',
-  white:      '#FFFFFF',
-  ink:        '#0F172A',
-  ink2:       '#1E293B',
-  muted:      '#64748B',
-  subtle:     '#94A3B8',
-  line:       '#E2E8F0',
-  border:     '#CBD5E1',
-  disabled:   '#F1F5F9',
+  bg:         '#f7f9fb', // background
+  surface:    '#ffffff', // surface-container-lowest
+  surfaceContainer: '#eceef0',
+  surfaceVariant: '#e0e3e5',
+  white:      '#ffffff',
+  ink:        '#191c1e', // on-surface
+  ink2:       '#111c2d', // on-tertiary-fixed
+  muted:      '#424754', // on-surface-variant
+  subtle:     '#727785', // outline
+  line:       '#e0e3e5', // surface-variant
+  border:     '#c2c6d6', // outline-variant
+  disabled:   '#eceef0', // surface-container
 
   // Brand
   momo:       '#A50064',
@@ -44,64 +46,71 @@ export const SP = {
 
 /* ── Border Radius ─────────────────────────────────────────────── */
 export const R = {
-  sm: 12, md: 16, lg: 20, xl: 28, full: 999,
+  sm: 8, md: 12, lg: 16, xl: 24, xxl: 32, full: 9999,
 };
 
 /* ── Shadows ───────────────────────────────────────────────────── */
-const shadow = (opacity = 0.08, radius = 12, offset = 4) => ({
-  shadowColor: '#0F172A',
+const shadow = (opacity = 0.04, radius = 20, offset = 4) => ({
+  shadowColor: '#000000',
   shadowOpacity: opacity,
   shadowRadius: radius,
   shadowOffset: { width: 0, height: offset },
-  ...Platform.select({ android: { elevation: Math.round(radius / 3) } }),
+  ...Platform.select({ android: { elevation: Math.round(radius / 4) } }),
 });
 
 export const Shadows = {
-  sm:  shadow(0.05, 6, 2),
-  md:  shadow(0.08, 12, 4),
-  lg:  shadow(0.12, 20, 8),
-  xl:  shadow(0.16, 32, 12),
+  sm:  shadow(0.04, 10, 2),
+  md:  shadow(0.04, 20, 4),
+  lg:  shadow(0.08, 24, 8),
+  xl:  shadow(0.12, 32, 12),
+  ambient: shadow(0.04, 20, 4),
+  kinetic: {
+    shadowColor: C.blue,
+    shadowOpacity: 0.25,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
+  }
 };
 
 /* ── StyleSheet ────────────────────────────────────────────────── */
 export const S = StyleSheet.create({
   /* Layout */
   screen:   { flex: 1, backgroundColor: C.bg },
-  content:  { padding: SP.lg, paddingBottom: SP.xxl + SP.md },
+  content:  { padding: SP.lg, paddingBottom: SP.xxl + SP.xl },
 
   /* Typography */
-  display:  { fontSize: 30, fontFamily: 'Inter_900Black', color: C.ink, letterSpacing: -0.8 },
-  title:    { fontSize: 26, fontFamily: 'Inter_800ExtraBold', color: C.ink, letterSpacing: -0.5 },
-  h2:       { fontSize: 17, fontFamily: 'Inter_700Bold', color: C.ink, letterSpacing: -0.2 },
-  h3:       { fontSize: 15, fontFamily: 'Inter_600SemiBold', color: C.ink2 },
-  body:     { fontSize: 15, fontFamily: 'Inter_400Regular', color: C.ink2, lineHeight: 22 },
-  subtitle: { fontSize: 14, fontFamily: 'Inter_400Regular', color: C.muted, marginTop: SP.xs, lineHeight: 21 },
-  caption:  { fontSize: 12, fontFamily: 'Inter_500Medium', color: C.subtle, lineHeight: 18 },
+  display:  { fontSize: 40, fontFamily: 'Inter_700Bold', color: C.ink, letterSpacing: -0.8, lineHeight: 48 },
+  title:    { fontSize: 24, fontFamily: 'Inter_700Bold', color: C.ink, letterSpacing: 0, lineHeight: 32 },
+  h2:       { fontSize: 20, fontFamily: 'Inter_600SemiBold', color: C.ink, lineHeight: 28 },
+  h3:       { fontSize: 16, fontFamily: 'Inter_400Regular', color: C.ink2, lineHeight: 24 },
+  body:     { fontSize: 14, fontFamily: 'Inter_400Regular', color: C.ink2, lineHeight: 20 },
+  subtitle: { fontSize: 14, fontFamily: 'Inter_400Regular', color: C.muted, marginTop: SP.xs, lineHeight: 20 },
+  caption:  { fontSize: 11, fontFamily: 'Inter_500Medium', color: C.subtle, lineHeight: 14 },
 
   /* Cards */
   card: {
     backgroundColor: C.surface,
-    borderRadius: R.lg,
-    padding: SP.lg - 4,
-    marginBottom: SP.md - 2,
-    borderWidth: 1,
-    borderColor: C.line,
-    ...shadow(0.06, 10, 3),
+    borderRadius: R.xl,
+    padding: SP.md,
+    marginBottom: SP.md,
+    borderWidth: 0,
+    ...shadow(0.04, 20, 4), // Matching the shadow-[0px_4px_20px_rgba(0,0,0,0.04)]
   },
   cardElevated: {
     backgroundColor: C.surface,
-    borderRadius: R.lg,
+    borderRadius: R.xl,
     padding: SP.lg,
     marginBottom: SP.md,
     borderWidth: 0,
-    ...shadow(0.12, 20, 8),
+    ...shadow(0.08, 24, 8),
   },
   cardHero: {
     backgroundColor: C.blue,
     borderRadius: R.xl,
     padding: SP.lg,
     marginBottom: SP.md,
-    ...shadow(0.2, 20, 8),
+    ...shadow(0.1, 24, 8),
   },
 
   /* Rows */
@@ -114,65 +123,70 @@ export const S = StyleSheet.create({
     fontSize: 12,
     fontFamily: 'Inter_600SemiBold',
     color: C.muted,
-    marginBottom: SP.sm,
-    marginTop: SP.md + SP.xs,
+    marginBottom: SP.xs,
+    marginTop: SP.md,
     textTransform: 'uppercase',
     letterSpacing: 0.6,
   },
   input: {
     borderWidth: 1.5,
-    borderColor: C.line,
+    borderColor: '#e0e3e5',
     borderRadius: R.md,
     backgroundColor: C.surface,
     paddingHorizontal: SP.md,
-    paddingVertical: SP.md - 2,
-    fontSize: 15,
+    paddingVertical: SP.md + 2,
+    fontSize: 16,
     fontFamily: 'Inter_500Medium',
     color: C.ink,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 1,
   },
   inputFocused: {
-    borderColor: C.blue,
+    // Focus styles are usually handled via component state, but we provide this for consistency
     backgroundColor: C.blueSoft,
   },
 
   /* Buttons */
   button: {
     backgroundColor: C.blue,
-    borderRadius: R.md,
+    borderRadius: R.lg,
     paddingVertical: SP.md,
     paddingHorizontal: SP.lg,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: SP.lg - 4,
-    minHeight: 52,
-    ...shadow(0.15, 12, 4),
+    marginTop: SP.lg,
+    minHeight: 56,
+    ...shadow(0.1, 16, 4),
   },
   orangeButton: {
     backgroundColor: C.orange,
-    ...shadow(0.15, 12, 4),
+    ...shadow(0.1, 16, 4),
   },
   buttonSecondary: {
     backgroundColor: 'transparent',
     borderWidth: 1.5,
     borderColor: C.blue,
-    borderRadius: R.md,
+    borderRadius: R.lg,
     paddingVertical: SP.md - 2,
     paddingHorizontal: SP.lg,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: SP.lg - 4,
-    minHeight: 52,
+    marginTop: SP.md,
+    minHeight: 56,
   },
   buttonText: {
     color: C.white,
     fontFamily: 'Inter_700Bold',
-    fontSize: 15,
+    fontSize: 16,
     letterSpacing: -0.1,
   },
   buttonSecondaryText: {
     color: C.blue,
     fontFamily: 'Inter_700Bold',
-    fontSize: 15,
+    fontSize: 16,
     letterSpacing: -0.1,
   },
 
@@ -180,12 +194,12 @@ export const S = StyleSheet.create({
   pill: {
     alignSelf: 'flex-start',
     borderRadius: R.full,
-    paddingHorizontal: SP.md - 4,
-    paddingVertical: SP.xs + 1,
-    backgroundColor: C.blueSoft,
-    color: C.blue,
-    fontSize: 11,
-    fontFamily: 'Inter_700Bold',
+    paddingHorizontal: SP.md,
+    paddingVertical: SP.xs + 2,
+    backgroundColor: C.blueLight,
+    color: C.blueDark,
+    fontSize: 12,
+    fontFamily: 'Inter_600SemiBold',
     overflow: 'hidden',
   },
   pillSuccess: {
@@ -204,7 +218,7 @@ export const S = StyleSheet.create({
   /* Data */
   amount: {
     fontSize: 24,
-    fontFamily: 'Inter_800ExtraBold',
+    fontFamily: 'Inter_700Bold',
     color: C.blue,
     letterSpacing: -0.5,
   },
@@ -222,11 +236,9 @@ export const S = StyleSheet.create({
     color: C.red,
     padding: SP.md,
     borderRadius: R.md,
-    marginVertical: SP.md - 4,
-    fontFamily: 'Inter_600SemiBold',
+    marginVertical: SP.md,
+    fontFamily: 'Inter_500Medium',
     fontSize: 14,
-    borderWidth: 1,
-    borderColor: '#FECACA',
   },
 
   /* Empty State */
@@ -241,11 +253,11 @@ export const S = StyleSheet.create({
     marginBottom: SP.md,
   },
   emptyText: {
-    fontSize: 15,
-    fontFamily: 'Inter_500Medium',
+    fontSize: 16,
+    fontFamily: 'Inter_400Regular',
     color: C.muted,
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: 24,
   },
 
   /* List Items */
@@ -253,27 +265,26 @@ export const S = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: C.surface,
-    borderRadius: R.lg,
+    borderRadius: R.xl,
     padding: SP.md,
-    marginBottom: SP.sm + 2,
-    borderWidth: 1,
-    borderColor: C.line,
-    ...shadow(0.04, 6, 2),
+    marginBottom: SP.sm,
+    borderWidth: 0,
+    ...shadow(0.04, 10, 2),
   },
   listItemIcon: {
-    width: 44,
-    height: 44,
+    width: 48,
+    height: 48,
     borderRadius: R.sm,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: SP.md - 4,
+    marginRight: SP.md,
   },
   listItemContent: {
     flex: 1,
   },
   listItemChevron: {
     color: C.subtle,
-    fontSize: 20,
+    fontSize: 24,
     fontFamily: 'Inter_600SemiBold',
     marginLeft: SP.sm,
   },
@@ -282,7 +293,7 @@ export const S = StyleSheet.create({
   sheetOverlay: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(15,23,42,0.5)',
+    backgroundColor: 'rgba(25, 28, 30, 0.5)', // slightly warmer overlay
   },
   sheetContainer: {
     backgroundColor: C.surface,
@@ -290,10 +301,10 @@ export const S = StyleSheet.create({
     borderTopRightRadius: R.xl,
     padding: SP.lg,
     paddingBottom: SP.xxl,
-    ...shadow(0.2, 32, -8),
+    ...shadow(0.1, 32, -8),
   },
   sheetHandle: {
-    width: 36,
+    width: 40,
     height: 4,
     borderRadius: R.full,
     backgroundColor: C.line,
@@ -305,15 +316,14 @@ export const S = StyleSheet.create({
   metricCard: {
     flex: 1,
     backgroundColor: C.surface,
-    borderRadius: R.md,
+    borderRadius: R.lg,
     padding: SP.md,
     margin: SP.xs,
-    borderWidth: 1,
-    borderColor: C.line,
-    ...shadow(0.04, 6, 2),
+    borderWidth: 0,
+    ...shadow(0.04, 10, 2),
   },
   metricLabel: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: 'Inter_600SemiBold',
     color: C.muted,
     textTransform: 'uppercase',
@@ -321,19 +331,20 @@ export const S = StyleSheet.create({
     marginBottom: SP.xs,
   },
   metricValue: {
-    fontSize: 18,
-    fontFamily: 'Inter_800ExtraBold',
+    fontSize: 20,
+    fontFamily: 'Inter_700Bold',
     letterSpacing: -0.3,
   },
 
   /* Selection Card */
   selectionCard: {
     backgroundColor: C.surface,
-    borderRadius: R.md,
+    borderRadius: R.lg,
     padding: SP.md,
     marginBottom: SP.sm + 2,
     borderWidth: 2,
-    borderColor: C.line,
+    borderColor: 'transparent',
+    ...shadow(0.04, 10, 2),
   },
   selectionCardActive: {
     borderColor: C.blue,
@@ -342,16 +353,21 @@ export const S = StyleSheet.create({
 
   /* Tab bar */
   tabBar: {
-    height: 78,
+    height: 80,
     paddingTop: SP.sm,
-    paddingBottom: Platform.OS === 'ios' ? SP.lg : SP.md - 2,
+    paddingBottom: Platform.OS === 'ios' ? SP.lg : SP.md,
     borderTopWidth: 0,
     backgroundColor: C.surface,
     ...shadow(0.08, 16, -4),
+    // Material 3 style: floating look or rounded top
+    borderTopLeftRadius: R.xl,
+    borderTopRightRadius: R.xl,
+    position: 'absolute',
   },
   tabLabel: {
     fontSize: 11,
-    fontFamily: 'Inter_600SemiBold',
+    fontFamily: 'Inter_500Medium',
     letterSpacing: -0.1,
   },
 });
+
