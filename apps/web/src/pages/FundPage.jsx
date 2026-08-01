@@ -1,4 +1,4 @@
-import { Plus } from "lucide-react";
+import { Plus, Pencil } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import {
@@ -25,6 +25,29 @@ export function FundPage() {
   const [showForm, setShowForm] = useState(false);
   const [showMomo, setShowMomo] = useState(false);
   const [redirectPayment, setRedirectPayment] = useState(null);
+  
+  const [showEditFund, setShowEditFund] = useState(false);
+  const [editFundAmount, setEditFundAmount] = useState("");
+  const [updatingFund, setUpdatingFund] = useState(false);
+
+  const handleUpdateFund = async (e) => {
+    e.preventDefault();
+    if (!editFundAmount) return;
+    setUpdatingFund(true);
+    try {
+      await api(`/trips/${tripId}/fund`, {
+        method: "PATCH",
+        body: { target_amount: Number(editFundAmount) },
+      });
+      setShowEditFund(false);
+      toast.success("Đã cập nhật ngân sách dự kiến.");
+      fund.reload();
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setUpdatingFund(false);
+    }
+  };
 
   useEffect(() => {
     const paymentId = searchParams.get("paymentId");
@@ -114,8 +137,22 @@ export function FundPage() {
           </div>
           <div className="grid grid-cols-2 gap-6 text-right text-sm md:grid-cols-4">
             <div>
-              <p className="text-slate-500">Mục tiêu góp</p>
-              <b>{currency(fundData.target_amount)}</b>
+              <p className="text-slate-500">Ngân sách dự kiến</p>
+              <div className="flex justify-end items-center gap-1">
+                <b>{currency(fundData.target_amount)}</b>
+                <button
+                  onClick={() => {
+                    setEditFundAmount(String(fundData.target_amount || ""));
+                    setShowEditFund(true);
+                  }}
+                  className="rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-travel"
+                >
+                  <Pencil size={14} />
+                </button>
+              </div>
+              <p className="mt-1 text-xs text-slate-500">
+                Mức đóng: {currency((fundData.target_amount || 0) / Math.max(members.data?.length || 1, 1))}/người
+              </p>
             </div>
             <div>
               <p className="text-slate-500">Quỹ đã thu</p>
@@ -222,6 +259,31 @@ export function FundPage() {
       {showMomo && (
         <Modal title="Đóng góp qua MoMo" onClose={() => setShowMomo(false)}>
           <MomoPaymentForm tripId={tripId} onSuccess={reloadAll} />
+        </Modal>
+      )}
+      {showEditFund && (
+        <Modal title="Cập nhật ngân sách dự kiến" onClose={() => setShowEditFund(false)}>
+          <form onSubmit={handleUpdateFund}>
+            <div className="space-y-4">
+              <div>
+                <label>Ngân sách (VNĐ)</label>
+                <input
+                  required
+                  type="number"
+                  min="0"
+                  value={editFundAmount}
+                  onChange={(e) => setEditFundAmount(e.target.value)}
+                  placeholder="VD: 5000000"
+                />
+              </div>
+            </div>
+            <button
+              disabled={updatingFund}
+              className="btn-primary mt-6 w-full"
+            >
+              {updatingFund ? "Đang lưu..." : "Lưu thay đổi"}
+            </button>
+          </form>
         </Modal>
       )}
     </>
