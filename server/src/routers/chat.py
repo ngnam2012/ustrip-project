@@ -53,10 +53,7 @@ async def send_message(request: Request, msg_in: SendMessageRequest, current_use
     
     try:
         sio = get_io()
-        
-        # Determine if we are running in an event loop or not for emitting
-        # Fastapi is async, python-socketio AsyncServer is async
-        asyncio.create_task(sio.emit('new_message', message, room=f"trip_{trip_id}"))
+        await sio.emit('new_message', message, room=f"trip_{trip_id}")
     except Exception as e:
         logging.getLogger(__name__).error(f"Socket.io error emitting message: {e}")
         

@@ -2,7 +2,7 @@ import * as SecureStore from 'expo-secure-store';
 import * as ImagePicker from 'expo-image-picker';
 import { Platform } from 'react-native';
 
-export const BASE = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000/api';
+export const BASE = process.env.EXPO_PUBLIC_API_URL;
 
 export async function api(path, options = {}) {
   const token = await getToken();
@@ -22,7 +22,14 @@ export async function api(path, options = {}) {
   }
   if (response.status === 204) return null;
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.message || 'Không thể kết nối máy chủ');
+  if (!response.ok) {
+    let errMsg = data.message;
+    if (!errMsg && data.detail) {
+      if (typeof data.detail === 'string') errMsg = data.detail;
+      else if (Array.isArray(data.detail)) errMsg = data.detail.map(e => (e.msg.includes('characters') ? 'Mật khẩu phải có ít nhất 8 ký tự' : e.msg)).join(', ');
+    }
+    throw new Error(errMsg || 'Lỗi hệ thống hoặc sai định dạng dữ liệu (422)');
+  }
   return data;
 }
 

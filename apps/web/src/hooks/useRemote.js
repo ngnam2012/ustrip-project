@@ -6,6 +6,7 @@ export function useRemote(path, deps = []) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const load = useCallback(async () => {
+    if (!path) { setLoading(false); return; }
     setLoading(true); setError('');
     try { setData(await api(path)); } catch (e) { setError(e.message); } finally { setLoading(false); }
   }, [path, ...deps]);

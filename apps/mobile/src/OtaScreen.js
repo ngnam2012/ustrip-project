@@ -1,18 +1,18 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { View, Text, Image, FlatList, Pressable, Alert, ActivityIndicator, ScrollView } from 'react-native';
 import { api, money } from './api';
-import { C, S, SP } from './ui';
+import { C, S, SP, R } from './ui';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 const CATEGORIES = [
   { id: 'all', label: 'Tất cả' },
   { id: 'food', label: 'Ăn uống' },
-  { id: 'accommodation', label: 'Lưu trú' },
-  { id: 'transport', label: 'Di chuyển' },
-  { id: 'activity', label: 'Vui chơi' }
+  { id: 'hotel', label: 'Lưu trú' },
+  { id: 'ticket', label: 'Vui chơi' }
 ];
 
-export default function OtaScreen({ route }) {
+export default function OtaScreen({ route, navigation }) {
   const trip = route.params.trip;
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -61,7 +61,7 @@ export default function OtaScreen({ route }) {
         <Image source={{ uri: item.image }} style={{ width: '100%', height: 160, backgroundColor: '#E5E7EB' }} />
         <View style={{ position: 'absolute', top: 12, right: 12, backgroundColor: 'rgba(255,255,255,0.9)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}>
           <Text style={{ fontSize: 11, fontWeight: '700', color: C.blue, textTransform: 'capitalize' }}>
-            {item.category === 'food' ? 'Ăn uống' : item.category === 'transport' ? 'Di chuyển' : item.category === 'accommodation' ? 'Lưu trú' : 'Vui chơi'}
+            {item.category === 'food' ? 'Ăn uống' : item.category === 'transport' ? 'Di chuyển' : item.category === 'hotel' ? 'Lưu trú' : 'Vui chơi'}
           </Text>
         </View>
       </View>
@@ -112,8 +112,19 @@ export default function OtaScreen({ route }) {
         contentContainerStyle={S.content}
         ListHeaderComponent={
           <View style={{ marginBottom: SP.lg }}>
-            <Text style={S.title}>Dịch vụ OTA</Text>
-            <Text style={S.subtitle}>Khám phá và Đặt trước</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <View>
+                <Text style={S.title}>Dịch vụ OTA</Text>
+                <Text style={S.subtitle}>Khám phá và Đặt trước</Text>
+              </View>
+              <Pressable 
+                onPress={() => navigation.getParent()?.navigate('AiPlaces', { trip })}
+                style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: C.orangeLight, paddingHorizontal: 12, paddingVertical: 8, borderRadius: R.full }}
+              >
+                <Ionicons name="sparkles" size={16} color={C.orangeDark} style={{ marginRight: 4 }} />
+                <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 13, color: C.orangeDark }}>Gợi ý AI</Text>
+              </Pressable>
+            </View>
             
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: SP.md, marginHorizontal: -SP.lg }} contentContainerStyle={{ paddingHorizontal: SP.lg }}>
               {CATEGORIES.map(t => (

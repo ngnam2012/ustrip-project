@@ -14,7 +14,13 @@ export async function api(path, options = {}) {
   });
   if (response.status === 204) return null;
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.message || 'Không thể kết nối máy chủ');
+  if (!response.ok) {
+    let msg = data.message;
+    if (!msg && data.detail) {
+      msg = typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail);
+    }
+    throw new Error(msg || 'Không thể kết nối máy chủ');
+  }
   return data;
 }
 

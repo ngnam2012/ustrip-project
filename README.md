@@ -40,6 +40,28 @@ ustrip-project/
 
 ## 🚀 Cách Chạy Ứng Dụng (Quick Start)
 
+### 0. Thiết lập biến môi trường (Environment Variables)
+
+Trước khi chạy dự án, bạn cần thiết lập các biến môi trường. Chúng tôi đã cung cấp sẵn các file `.env.example` làm mẫu. Hãy thực hiện copy và đổi tên thành `.env`:
+
+1. **Server (`server/.env`)**: Copy từ `server/.env.example`. Điền các thông tin kết nối Supabase, Gemini API, Cloudinary và MoMo của bạn vào đây.
+2. **Web (`apps/web/.env`)**: Copy từ `apps/web/.env.example`. Mặc định gọi API tới `http://localhost:5000/api`.
+3. **Mobile (`apps/mobile/.env`)**: Copy từ `apps/mobile/.env.example`. Đổi `your-local-ip` thành IP LAN của máy tính bạn (ví dụ `192.168.1.15`).
+
+**🔑 Hướng dẫn lấy các key (API Keys) quan trọng:**
+
+- **Supabase (`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`)**: 
+  - Đăng nhập [Supabase](https://supabase.com/), tạo Project mới.
+  - Vào **Project Settings -> API** để lấy `URL`, `anon/public` key, và `service_role` key.
+  - Vào **Project Settings -> Database** để lấy chuỗi kết nối (`Connection string`) và thay mật khẩu của bạn vào.
+- **Gemini (`GEMINI_API_KEY`)**: 
+  - Truy cập [Google AI Studio](https://aistudio.google.com/). Bấm **Get API key** và tạo một key mới.
+- **Cloudinary (`CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`)**: 
+  - Đăng ký tài khoản tại [Cloudinary](https://cloudinary.com/). Tại trang Dashboard chính (Programmable Media), bạn sẽ thấy đủ 3 thông số này.
+- **MoMo (`MOMO_PARTNER_CODE`, `MOMO_ACCESS_KEY`, `MOMO_SECRET_KEY`)**: 
+  - Đăng nhập trang [MoMo Business Developers](https://business.momo.vn/) và tạo môi trường Thử nghiệm (Test).
+  - *(Lưu ý: Nếu bạn cấu hình `MOMO_ENV=mock` trong `.env` thì hệ thống sẽ dùng dữ liệu giả lập, không cần thiết lập key thật của MoMo).*
+
 ### 1. Đồng bộ Database
 
 Chạy lệnh sau tại thư mục gốc để đẩy tự động các file SQL (schema và migrations) lên Supabase:
@@ -94,6 +116,12 @@ npm run dev
 
 > [!NOTE]
 > Đảm bảo bạn đã thiết lập đúng các file `.env` trước khi chạy. Vui lòng xem hướng dẫn chi tiết từng bước tại **[Hướng Dẫn Cài Đặt (SETUP.md)](docs/SETUP.md)**.
+> 
+> **Lưu ý khi kết nối Mobile App:** Để kết nối ứng dụng Mobile tới Backend trong mạng Wi-Fi cục bộ (LAN), bạn cần cập nhật IP hiện tại của máy:
+> 1. Mở Command Prompt (`cmd`) và gõ lệnh `ipconfig`.
+> 2. Tìm dòng **IPv4 Address** (ví dụ: `192.168.1.15`).
+> 3. Cập nhật địa chỉ này vào file `apps/mobile/.env` (ví dụ: `EXPO_PUBLIC_API_URL=http://192.168.1.15:5000/api`).
+> 4. Khởi động lại ứng dụng nếu đang chạy.
 
 ## 📚 Tổng Hợp Tài Liệu
 
@@ -123,9 +151,3 @@ Hãy nhấp vào các liên kết dưới đây để xem tài liệu chi tiết
 - [Quản lý State (STATE.md)](docs/STATE.md)
 - [Custom Hooks (HOOKS.md)](docs/HOOKS.md)
 - [UI Components (COMPONENTS.md)](docs/COMPONENTS.md)
-
-## 🤝 Đóng Góp
-
-- Đọc [Hướng Dẫn Đóng Góp (CONTRIBUTING.md)](CONTRIBUTING.md).
-- Xem lịch sử [Changelog](CHANGELOG.md).
-- Giấy phép mã nguồn: [MIT License](LICENSE).

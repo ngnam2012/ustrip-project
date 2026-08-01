@@ -1,22 +1,16 @@
 import React, { useState, useCallback } from 'react';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { View, Text, ScrollView, Pressable, SafeAreaView, ActivityIndicator, Image } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { C, S, SP, R, Shadows } from './ui';
-import ItineraryScreen from './ItineraryScreen';
-import FundScreen from './FundScreen';
-import OtaScreen from './OtaScreen';
-import { View, Text, ScrollView, Pressable, SafeAreaView, ActivityIndicator, Image, Platform } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { C, S, SP, R, Shadows } from './ui';
 import { api, money } from './api';
-
-const Tabs = createBottomTabNavigator();
 
 const categoryLabels = {
   food: 'Ăn uống', transport: 'Di chuyển', hotel: 'Lưu trú',
   ticket: 'Vui chơi', shopping: 'Mua sắm', other: 'Khác'
 };
 
-function ExpensesTab({ route, navigation }) {
+export default function ExpensesScreen({ route, navigation }) {
   const trip = route.params.trip;
   const [expenses, setExpenses] = useState(null);
   const [total, setTotal] = useState({ fund: 0, personal: 0 });
@@ -43,7 +37,7 @@ function ExpensesTab({ route, navigation }) {
         </View>
 
         {/* Summary Cards */}
-        <View style={{ flexDirection: 'row', gap: SP.md, marginBottom: SP.lg }}>
+        <View style={[S.row, { gap: SP.md, marginBottom: SP.lg }]}>
           <View style={{ flex: 1, backgroundColor: C.surface, borderRadius: R.lg, padding: SP.md, ...Shadows.ambient }}>
             <Ionicons name="wallet-outline" size={20} color={C.blue} />
             <Text style={{ fontFamily: 'Inter_700Bold', fontSize: 18, color: C.ink, marginTop: 6 }}>{money(total.fund)}</Text>
@@ -58,7 +52,7 @@ function ExpensesTab({ route, navigation }) {
 
         {/* Expense List */}
         <Text style={[S.h2, { marginBottom: SP.sm }]}>Lịch sử chi tiêu ({expenses.length})</Text>
-
+        
         {expenses.length === 0 ? (
           <View style={{ backgroundColor: C.surface, borderRadius: R.lg, padding: SP.xl, alignItems: 'center', ...Shadows.ambient }}>
             <Ionicons name="receipt-outline" size={40} color={C.muted} />
@@ -72,10 +66,11 @@ function ExpensesTab({ route, navigation }) {
               return (
                 <Pressable
                   key={expense.id}
-                  onPress={() => navigation.getParent()?.navigate('ExpenseDetail', { trip, item: expense })}
+                  onPress={() => navigation.navigate('ExpenseDetail', { trip, item: expense })}
                   style={{ backgroundColor: C.surface, borderRadius: R.lg, padding: SP.md, ...Shadows.ambient }}
                 >
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                  {/* Header row */}
+                  <View style={[S.row, { justifyContent: 'space-between', marginBottom: 6 }]}>
                     <View style={{ flex: 1, marginRight: SP.md }}>
                       <Text style={[S.h2, { fontSize: 15 }]} numberOfLines={1}>{expense.title}</Text>
                       <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 12, color: C.subtle, marginTop: 2 }}>
@@ -85,7 +80,8 @@ function ExpensesTab({ route, navigation }) {
                     <Text style={{ fontFamily: 'Inter_700Bold', fontSize: 16, color: C.ink }}>{money(expense.amount)}</Text>
                   </View>
 
-                  <View style={{ flexDirection: 'row', marginTop: 4, gap: 8 }}>
+                  {/* Source badge */}
+                  <View style={[S.row, { marginTop: 4, gap: 8 }]}>
                     <View style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: R.full, backgroundColor: isShared ? C.mintLight : C.blueSoft }}>
                       <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 11, color: isShared ? C.mint : C.blue }}>
                         {isShared ? 'Quỹ chung' : 'Trả hộ'}
@@ -98,17 +94,18 @@ function ExpensesTab({ route, navigation }) {
                     )}
                   </View>
 
+                  {/* Splits - who owes whom */}
                   {!isShared && splits.length > 0 && (
                     <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: C.surfaceContainer }}>
                       <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 12, color: C.subtle, marginBottom: 4 }}>Chia cho:</Text>
                       {splits.map(split => (
-                        <View key={split.id} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 3 }}>
-                          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                            <Ionicons
-                              name={split.is_settled ? "checkmark-circle" : "ellipse-outline"}
-                              size={14}
-                              color={split.is_settled ? C.mint : C.muted}
-                              style={{ marginRight: 6 }}
+                        <View key={split.id} style={[S.row, { justifyContent: 'space-between', paddingVertical: 3 }]}>
+                          <View style={S.row}>
+                            <Ionicons 
+                              name={split.is_settled ? "checkmark-circle" : "ellipse-outline"} 
+                              size={14} 
+                              color={split.is_settled ? C.mint : C.muted} 
+                              style={{ marginRight: 6 }} 
                             />
                             <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 13, color: C.ink }}>
                               {split.profile?.full_name || 'Thành viên'}
@@ -122,11 +119,12 @@ function ExpensesTab({ route, navigation }) {
                     </View>
                   )}
 
+                  {/* Bill image thumbnail */}
                   {expense.bill_image_url ? (
-                    <Image
-                      source={{ uri: expense.bill_image_url }}
-                      style={{ height: 120, borderRadius: R.md, marginTop: 8, backgroundColor: C.surfaceVariant }}
-                      resizeMode="cover"
+                    <Image 
+                      source={{ uri: expense.bill_image_url }} 
+                      style={{ height: 120, borderRadius: R.md, marginTop: 8, backgroundColor: C.surfaceVariant }} 
+                      resizeMode="cover" 
                     />
                   ) : null}
                 </Pressable>
@@ -139,94 +137,15 @@ function ExpensesTab({ route, navigation }) {
       {/* FAB - Add Expense */}
       <Pressable
         style={{
-          position: 'absolute', bottom: 100, right: 20,
+          position: 'absolute', bottom: 24, right: 20,
           width: 56, height: 56, borderRadius: 28,
           backgroundColor: C.orange, alignItems: 'center', justifyContent: 'center',
           ...Shadows.kinetic, elevation: 6
         }}
-        onPress={() => navigation.getParent()?.navigate('AddExpense', { trip })}
+        onPress={() => navigation.navigate('AddExpense', { trip })}
       >
         <Ionicons name="add" size={28} color={C.white} />
       </Pressable>
     </SafeAreaView>
-  );
-}
-
-// A placeholder for tabs that trigger navigation rather than showing a screen
-const DummyScreen = () => <View />;
-
-export default function TripTabs({ route, navigation }) {
-  const trip = route.params.trip;
-
-  return (
-    <Tabs.Navigator
-      screenOptions={({ route: tabRoute }) => ({
-        headerShown: false,
-        tabBarStyle: {
-          height: 80,
-          paddingTop: SP.sm,
-          paddingBottom: Platform.OS === 'ios' ? SP.lg : SP.md,
-          borderTopWidth: 0,
-          backgroundColor: C.surface,
-          ...Shadows.ambient,
-          borderTopLeftRadius: R.xl,
-          borderTopRightRadius: R.xl,
-          position: 'absolute', // Floating effect
-        },
-        tabBarShowLabel: true,
-        tabBarLabelStyle: {
-          fontSize: 11,
-          fontFamily: 'Inter_500Medium',
-          letterSpacing: -0.1,
-        },
-        tabBarActiveTintColor: C.blue,
-        tabBarInactiveTintColor: C.muted,
-        tabBarIcon: ({ color, size, focused }) => {
-          let iconName;
-          if (tabRoute.name === 'ItineraryTab') iconName = focused ? 'calendar' : 'calendar-outline';
-          else if (tabRoute.name === 'FundTab') iconName = focused ? 'wallet' : 'wallet-outline';
-          else if (tabRoute.name === 'ExpensesTab') iconName = focused ? 'receipt' : 'receipt-outline';
-          else if (tabRoute.name === 'SettlementTab') iconName = focused ? 'cash' : 'cash-outline';
-          else if (tabRoute.name === 'OtaTab') iconName = focused ? 'compass' : 'compass-outline';
-          return <Ionicons name={iconName} size={24} color={color} />;
-        },
-      })}
-    >
-      <Tabs.Screen
-        name="ItineraryTab"
-        component={ItineraryScreen}
-        initialParams={{ trip }}
-        options={{ title: 'Lịch trình' }}
-      />
-      <Tabs.Screen
-        name="FundTab"
-        component={FundScreen}
-        initialParams={{ trip }}
-        options={{ title: 'Quỹ chung' }}
-      />
-      <Tabs.Screen
-        name="ExpensesTab"
-        component={ExpensesTab}
-        initialParams={{ trip }}
-        options={{ title: 'Chi tiêu' }}
-      />
-      <Tabs.Screen
-        name="SettlementTab"
-        component={DummyScreen}
-        options={{ title: 'Chia tiền' }}
-        listeners={{
-          tabPress: e => {
-            e.preventDefault();
-            navigation.navigate('Settlements', { trip });
-          },
-        }}
-      />
-      <Tabs.Screen
-        name="OtaTab"
-        component={OtaScreen}
-        initialParams={{ trip }}
-        options={{ title: 'Khám phá' }}
-      />
-    </Tabs.Navigator>
   );
 }

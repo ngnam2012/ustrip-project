@@ -97,7 +97,7 @@ export function MomoPaymentForm({ tripId, memberId, onSuccess }) {
     setBusy(true);
     try {
       const returnUrl = `${window.location.origin}/trips/${tripId}/fund`;
-      const result = await api(`/trips/${tripId}/contributions/momo/create`, { method: 'POST', body: { amount, member_id: memberId, return_url: returnUrl } });
+      const result = await api(`/trips/${tripId}/contributions/momo/create`, { method: 'POST', body: { amount: Number(amount), member_id: memberId, return_url: returnUrl } });
       setPayment(result);
       toast.success('Đã tạo yêu cầu thanh toán MoMo');
     } catch (error) { toast.error(error.message); } finally { setBusy(false); }

@@ -110,7 +110,7 @@ export default function Layout() {
       <div className="hidden text-sm font-medium text-slate-400 md:flex md:items-center md:gap-2">
         <span className="text-gradient font-bold">UsTrip</span>
         <span>·</span>
-        Đi cùng nhau, rõ từng khoản.
+        Cùng đi muôn nơi, chia tiền thảnh thơi.
       </div>
       <Link to="/notifications" className="relative rounded-xl p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 group">
         <Bell size={20} className="transition-transform group-hover:rotate-12" />

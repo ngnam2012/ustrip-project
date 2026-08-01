@@ -42,9 +42,9 @@ export function OtaPage() {
   const TABS = [
     { id: "all", label: "Tất cả" },
     { id: "food", label: "Ăn uống" },
-    { id: "accommodation", label: "Lưu trú" },
+    { id: "hotel", label: "Lưu trú" },
     { id: "transport", label: "Di chuyển" },
-    { id: "activity", label: "Vui chơi" },
+    { id: "ticket", label: "Vui chơi" },
   ];
 
   return (

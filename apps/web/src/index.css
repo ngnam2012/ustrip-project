@@ -12,7 +12,7 @@
   ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
   
   ::selection { background-color: rgba(37, 99, 235, 0.15); color: #0F172A; }
-  body { @apply bg-canvas text-ink font-sans antialiased; }
+  body { @apply bg-canvas text-ink font-sans antialiased overflow-x-hidden; }
 
   input, select, textarea {
     @apply w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm

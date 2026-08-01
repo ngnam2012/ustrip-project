@@ -7,6 +7,7 @@ import uvicorn
 import socketio
 
 from src.config.settings import settings
+import src.config.cloudinary # Initialize cloudinary
 from src.utils.api import ApiError
 from src.socket_app import sio
 
@@ -72,7 +73,9 @@ app.add_middleware(
 
 @app.get("/health")
 async def health_check():
-    return {"status": "ok", "service": "ustrip-api"}
+    import os
+    return {"status": "ok", "service": "ustrip-api", "cwd": os.getcwd(), "file": __file__}
+
 
 # Include Routers
 app.include_router(auth_router, prefix="/api")

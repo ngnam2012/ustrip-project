@@ -46,6 +46,9 @@ import {
 import { C, S, SP, R } from "./src/ui";
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import MobileMap from "./src/MobileMap";
+import RemindersScreen from "./src/RemindersScreen";
+import SettlementsScreen from "./src/SettlementsScreen";
+import ExpensesScreen from "./src/ExpensesScreen";
 import {
   addPushNotificationListeners,
   registerForPushNotifications,
@@ -211,7 +214,7 @@ function Welcome({ navigation }) {
                 letterSpacing: -1,
               }}
             >
-              Đi cùng nhau.{"\n"}Rõ từng khoản.
+              Cùng đi muôn nơi.{"\n"}Chia tiền thảnh thơi.
             </Text>
             <Text
               style={{
@@ -1552,7 +1555,7 @@ function AI({ route, navigation }) {
             onChangeText={(v) => setF({ ...f, style: v })}
           />
           <Button
-            title={busy ? "Đang tạo gợi ý..." : "✨ Tạo gợi ý thông minh"}
+            title={busy ? "Đang tạo gợi ý..." : "Tạo gợi ý thông minh"}
             onPress={generate}
           />
         </AnimatedCard>
@@ -1584,7 +1587,7 @@ function AI({ route, navigation }) {
               ]}
             >
               <View style={S.between}>
-                <Text style={[S.pill]}>✓ Đã tạo thành công</Text>
+                <Text style={[S.pill]}>Đã tạo thành công</Text>
               </View>
               <Text style={[S.title, { marginTop: SP.md }]}>
                 {f.days} ngày khám phá {f.destination}
@@ -1610,7 +1613,7 @@ function AI({ route, navigation }) {
                         {a.time} — {a.title}
                       </Text>
                       {a.location && (
-                        <Text style={S.caption}>📍 {a.location}</Text>
+                        <Text style={S.caption}>{a.location}</Text>
                       )}
                       {a.description && (
                         <Text style={S.subtitle}>{a.description}</Text>
@@ -1625,7 +1628,7 @@ function AI({ route, navigation }) {
             ))}
             <Button
               orange
-              title={busy ? "Đang thêm..." : "📋 Thêm vào lịch trình"}
+              title={busy ? "Đang thêm..." : "Thêm vào lịch trình"}
               onPress={addToItinerary}
             />
           </Animated.View>
@@ -1672,7 +1675,7 @@ function AiPlaces({ route, navigation }) {
             onChangeText={setCategory}
           />
           <Button
-            title={busy ? "Đang tìm..." : "✨ Tìm địa điểm"}
+            title={busy ? "Đang tìm..." : "Tìm địa điểm"}
             onPress={generate}
           />
         </AnimatedCard>
@@ -1693,7 +1696,7 @@ function AiPlaces({ route, navigation }) {
             {result.map((p, i) => (
               <AnimatedCard key={i} index={i}>
                 <Text style={[S.h2, { color: C.blue }]}>{p.title}</Text>
-                <Text style={S.subtitle}>📍 {p.location}</Text>
+                <Text style={S.subtitle}>{p.location}</Text>
                 <Text style={[S.subtitle, { marginTop: SP.sm }]}>
                   {p.description}
                 </Text>
@@ -2029,12 +2032,12 @@ function AppStack() {
         "Itinerary",
         "Members",
         "Contributions",
-        "Expenses",
-        "Reminders",
-        "Settlements",
       ].map((n) => (
         <Stack.Screen key={n} name={n} component={DataList} />
       ))}
+      <Stack.Screen name="Expenses" component={ExpensesScreen} />
+      <Stack.Screen name="Reminders" component={RemindersScreen} />
+      <Stack.Screen name="Settlements" component={SettlementsScreen} />
       <Stack.Screen name="Fund" component={Fund} />
       <Stack.Screen name="AddActivity" component={AddActivity} />
       <Stack.Screen name="ActivityDetail" component={ItemDetail} />

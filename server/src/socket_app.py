@@ -44,16 +44,22 @@ async def connect(sid, environ, auth):
 
 @sio.on('join_trip')
 async def join_trip(sid, trip_id):
-    session = await sio.get_session(sid)
-    user_id = session['user']['id']
-    
-    # Check if user is a member
-    res = db.table('trip_members').select('id').eq('trip_id', trip_id).eq('user_id', user_id).execute()
-    if res.data:
-        await sio.enter_room(sid, f"trip_{trip_id}")
-        logger.info(f"User {user_id} joined trip_{trip_id}")
-    else:
-        await sio.emit('error', 'You are not a member of this trip', room=sid)
+    try:
+        session = await sio.get_session(sid)
+        user_id = session['user']['id']
+        
+        logger.info(f"Join trip request: sid={sid}, trip_id={trip_id}, user_id={user_id}")
+        
+        # Check if user is a member
+        res = db.table('trip_members').select('id').eq('trip_id', trip_id).eq('user_id', user_id).execute()
+        if res.data:
+            await sio.enter_room(sid, f"trip_{trip_id}")
+            logger.info(f"User {user_id} joined room: trip_{trip_id}")
+        else:
+            logger.warning(f"User {user_id} denied joining trip_{trip_id}")
+            await sio.emit('error', 'You are not a member of this trip', room=sid)
+    except Exception as e:
+        logger.error(f"Error in join_trip: {e}")
 
 @sio.on('leave_trip')
 async def leave_trip(sid, trip_id):

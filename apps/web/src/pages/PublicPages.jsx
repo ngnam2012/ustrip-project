@@ -55,14 +55,14 @@ export function Landing() {
 
       <div className="relative">
         <motion.div {...fadeUp(0.1)} className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-gradient-to-r from-blue-50 to-white px-4 py-2 text-sm font-bold text-travel shadow-sm">
-          <Sparkles size={14} className="text-amber-500" />Group travel, made clear
+          <Sparkles size={14} className="text-amber-500" />Du lịch thông minh, trọn vẹn niềm vui
         </motion.div>
         <motion.h1 {...fadeUp(0.2)} className="mt-7 text-5xl font-extrabold leading-[1.08] tracking-tight text-ink md:text-6xl lg:text-[3.5rem]">
-          Đi cùng nhau.<br/>
-          <span className="text-gradient">Rõ từng khoản.</span>
+          Cùng đi muôn nơi.<br/>
+          <span className="text-gradient">Chia tiền thảnh thơi.</span>
         </motion.h1>
         <motion.p {...fadeUp(0.35)} className="mt-6 max-w-xl text-lg leading-8 text-slate-500">
-          Lên lịch trình, quản lý quỹ chung, chia chi phí và nhắc thanh toán — tất cả trong một nơi duy nhất.
+          Từ lên lịch trình bằng AI đến quản lý quỹ chung và chia tiền tự động — hành trang không thể thiếu cho hội bạn thân.
         </motion.p>
         <motion.div {...fadeUp(0.5)} className="mt-8 flex flex-wrap gap-3">
           <Link to="/register" className="btn-coral group">

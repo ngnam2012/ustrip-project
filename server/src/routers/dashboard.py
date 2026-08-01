@@ -41,10 +41,12 @@ async def financial_summary(request: Request, current_user: Dict[str, Any] = Dep
             by_category[cat] = by_category.get(cat, 0) + amt
         if date:
             by_day[date] = by_day.get(date, 0) + amt
+    fund_per_person = float(fund.get('target_amount', 0)) / max(len(members), 1) if fund else 0
             
     return {
         "total_budget": float(trip.get('estimated_budget', 0)),
         "total_shared_fund": float(fund.get('target_amount', 0)),
+        "fund_per_person": fund_per_person,
         "total_collected": total_collected,
         "total_spent": total_spent,
         "fund_spent": fund_spent,

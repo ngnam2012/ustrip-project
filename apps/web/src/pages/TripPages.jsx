@@ -16,6 +16,23 @@ const statIcons = [
   { bg: 'bg-gradient-to-br from-slate-50 to-slate-100/50', text: 'text-slate-600', icon: WalletCards },
 ];
 
+const defaultCovers = [
+  'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?q=80&w=1200&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?q=80&w=1200&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1506929562872-bb421503ef21?q=80&w=1200&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1454391304352-2bf4678b1a7a?q=80&w=1200&auto=format&fit=crop'
+];
+
+const getCoverUrl = (trip, index) => {
+  if (trip?.cover_image_url) return trip.cover_image_url;
+  if (index !== undefined) return defaultCovers[index % defaultCovers.length];
+  if (trip?.id) {
+    const hash = String(trip.id).split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+    return defaultCovers[hash % defaultCovers.length];
+  }
+  return defaultCovers[0];
+};
+
 export function TripsPage() {
   const { data, loading, error, reload } = useRemote('/trips');
   const [show, setShow] = useState(false);
@@ -50,7 +67,7 @@ export function TripsPage() {
         {data?.map((trip, i) =>
           <motion.div key={trip.id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
             <Link to={`/trips/${trip.id}`} className="group block overflow-hidden rounded-2xl bg-white border border-slate-100/80 shadow-card transition-all duration-300 hover:-translate-y-1.5 hover:shadow-card-hover hover:border-blue-100/60">
-              <div className="relative h-44 bg-gradient-to-br from-blue-500 via-blue-400 to-violet-400 bg-cover bg-center overflow-hidden" style={trip.cover_image_url ? {backgroundImage:`linear-gradient(0deg,rgba(0,0,0,.25),rgba(0,0,0,.02)),url(${trip.cover_image_url})`} : {}}>
+              <div className="relative h-44 bg-gradient-to-br from-blue-500 via-blue-400 to-violet-400 bg-cover bg-center overflow-hidden" style={{backgroundImage:`linear-gradient(0deg,rgba(0,0,0,.25),rgba(0,0,0,.02)),url(${getCoverUrl(trip, i)})`}}>
                 {/* Overlay pattern */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
                 {/* Decorative shapes */}
@@ -203,7 +220,7 @@ export function TripOverview() {
     <ErrorBox message={error||finance.error}/>
 
     {/* Hero */}
-    <section className="relative mb-8 min-h-72 overflow-hidden rounded-3xl bg-gradient-to-r from-blue-800 via-blue-700 to-violet-700 bg-cover bg-center p-8 text-white shadow-lift" style={trip.cover_image_url?{backgroundImage:`linear-gradient(90deg,rgba(0,30,80,.88),rgba(80,40,180,.35)),url(${trip.cover_image_url})`}:{}}>
+    <section className="relative mb-8 min-h-72 overflow-hidden rounded-3xl bg-gradient-to-r from-blue-800 via-blue-700 to-violet-700 bg-cover bg-center p-8 text-white shadow-lift" style={{backgroundImage:`linear-gradient(90deg,rgba(0,30,80,.88),rgba(80,40,180,.35)),url(${getCoverUrl(trip)})`}}>
       <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-white/5 blur-3xl" />
       <div className="pointer-events-none absolute -left-16 -bottom-16 h-48 w-48 rounded-full bg-violet-500/10 blur-3xl" />
       

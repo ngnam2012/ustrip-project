@@ -49,7 +49,7 @@ MOCK_SERVICES = [
     # ACCOMMODATION
     {
         "id": "homestay-dalat",
-        "category": "accommodation",
+        "category": "hotel",
         "title": "Homestay Cù Dú Đà Lạt",
         "price": 1200000,
         "image": "https://cf.bstatic.com/xdata/images/hotel/max1024x768/332219001.jpg?k=f64c1265eaab06d7d4c2fa07b4694b7be6b8e39f3796cdbb58b859942a731efc&o=&hp=1",
@@ -57,7 +57,7 @@ MOCK_SERVICES = [
     },
     {
         "id": "hotel-colline",
-        "category": "accommodation",
+        "category": "hotel",
         "title": "Hôtel Colline Đà Lạt (4 sao)",
         "price": 1800000,
         "image": "https://cf.bstatic.com/xdata/images/hotel/max1024x768/222384755.jpg?k=b4e941df025fcb1f09bb67efbe5db6a8b7ea843be7352fc70763ddc67b2ab1ff&o=&hp=1",
@@ -65,7 +65,7 @@ MOCK_SERVICES = [
     },
     {
         "id": "resort-tuyenlam",
-        "category": "accommodation",
+        "category": "hotel",
         "title": "Swiss-Belresort Tuyền Lâm Đà Lạt",
         "price": 2500000,
         "image": "https://cf.bstatic.com/xdata/images/hotel/max1024x768/56910626.jpg?k=df6b69fa03e83b4b8f06eb3638dbf91ebcc0577fc7986b51bf738f61c367ed9d&o=&hp=1",
@@ -75,7 +75,7 @@ MOCK_SERVICES = [
     # ACTIVITY
     {
         "id": "ticket-thunglung",
-        "category": "activity",
+        "category": "ticket",
         "title": "Vé tham quan Thung Lũng Tình Yêu",
         "price": 250000,
         "image": "https://res.klook.com/image/upload/c_fill,w_750,h_500/q_80/w_80,x_15,y_15,g_south_west,l_Klook_water_br_trans_yhcmh3/activities/cbbk77t0zohjipn264ce.webp",
@@ -83,7 +83,7 @@ MOCK_SERVICES = [
     },
     {
         "id": "tour-sanmay",
-        "category": "activity",
+        "category": "ticket",
         "title": "Tour Săn Mây Đồi Chè Cầu Đất (Nửa ngày)",
         "price": 450000,
         "image": "https://res.klook.com/image/upload/c_fill,w_750,h_500/q_80/w_80,x_15,y_15,g_south_west,l_Klook_water_br_trans_yhcmh3/activities/e3xebvpxb62j9tljnjc8.webp",
@@ -91,7 +91,7 @@ MOCK_SERVICES = [
     },
     {
         "id": "ticket-datanla-coaster",
-        "category": "activity",
+        "category": "ticket",
         "title": "Vé Alpine Coaster - Xe trượt ống thác Datanla",
         "price": 190000,
         "image": "https://res.klook.com/image/upload/c_fill,w_750,h_500/q_80/w_80,x_15,y_15,g_south_west,l_Klook_water_br_trans_yhcmh3/activities/vzryxchm5q90y9goy92y.webp",
@@ -99,7 +99,7 @@ MOCK_SERVICES = [
     },
     {
         "id": "ticket-lumiere",
-        "category": "activity",
+        "category": "ticket",
         "title": "Vé tham quan Vườn Ánh Sáng Lumiere Đà Lạt",
         "price": 120000,
         "image": "https://res.klook.com/image/upload/c_fill,w_750,h_500/q_80/w_80,x_15,y_15,g_south_west,l_Klook_water_br_trans_yhcmh3/activities/cndw615x5cixg40d12g1.webp",
@@ -177,10 +177,16 @@ async def book_mock_service(request: Request, book_req: BookServiceRequest, curr
         'category': service.get('category', 'other')
     }
     
-    res = db.table('expenses').insert(payload).execute()
-    if not res.data:
-        raise ApiError(500, 'Failed to create expense')
-    expense = res.data[0]
+    try:
+        res = db.table('expenses').insert(payload).execute()
+        if not res.data:
+            raise ApiError(500, 'Failed to create expense')
+        expense = res.data[0]
+    except Exception as e:
+        err_msg = str(e)
+        if hasattr(e, 'response'):
+            err_msg = e.response.text
+        raise ApiError(500, f"DB Error: {err_msg}")
     
     if payment_source == 'personal':
         members_res = db.table('trip_members').select('user_id').eq('trip_id', trip_id).execute()

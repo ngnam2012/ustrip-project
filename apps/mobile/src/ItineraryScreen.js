@@ -25,12 +25,20 @@ export function TopAppBar({ title, subtitle, trip }) {
       </View>
       <View style={S.row}>
         {trip && (
-          <Pressable 
-            style={{ padding: SP.xs, marginRight: SP.sm }}
-            onPress={() => navigation.navigate('Chat', { trip })}
-          >
-            <Ionicons name="chatbubble-ellipses-outline" size={24} color={C.blue} />
-          </Pressable>
+          <>
+            <Pressable 
+              style={{ padding: SP.xs, marginRight: SP.sm }}
+              onPress={() => navigation.getParent()?.navigate('AI', { trip })}
+            >
+              <Ionicons name="sparkles" size={24} color={C.orange} />
+            </Pressable>
+            <Pressable 
+              style={{ padding: SP.xs, marginRight: SP.sm }}
+              onPress={() => navigation.getParent()?.navigate('Chat', { trip })}
+            >
+              <Ionicons name="chatbubble-ellipses-outline" size={24} color={C.blue} />
+            </Pressable>
+          </>
         )}
         <Pressable style={{ padding: SP.xs }}>
           <Ionicons name="settings-outline" size={24} color={C.muted} />

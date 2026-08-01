@@ -75,7 +75,7 @@ async def save_participants(expense_id: str, participants: List[str]):
 async def list_expenses(request: Request, current_user: Dict[str, Any] = Depends(get_trip_member)):
     trip_id = request.path_params.get('tripId')
     res = db.table('expenses') \
-        .select('*,payer:profiles!paid_by(id,full_name,avatar_url),activity:itinerary_activities(id,title),participants:expense_participants(user_id)') \
+        .select('*,payer:profiles!paid_by(id,full_name,avatar_url),activity:itinerary_activities(id,title),participants:expense_participants(user_id),splits:expense_splits(*,profile:profiles(id,full_name,avatar_url))') \
         .eq('trip_id', trip_id) \
         .order('expense_date', desc=True) \
         .execute()
@@ -98,6 +98,29 @@ async def create_expense(request: Request, expense_in: ExpenseCreate, current_us
     
     if expense.get('payment_source') == 'personal':
         await save_participants(expense['id'], participant_ids)
+        # Auto-generate splits so settlements work immediately
+        amount = float(expense.get('amount', 0))
+        splits = compute_equal_splits(amount, participant_ids, expense['id'])
+        if splits:
+            db.table('expense_splits').delete().eq('expense_id', expense['id']).execute()
+            db.table('expense_splits').insert(splits).execute()
+            
+        if payload.get('title') == 'Thanh toán nợ tối ưu' and len(participant_ids) == 1:
+            debtor_id = expense['paid_by']
+            creditor_id = participant_ids[0]
+            
+            res_unsettled = db.table('expenses').select('id,paid_by,splits:expense_splits(id,user_id,is_settled)').eq('trip_id', trip_id).eq('payment_source', 'personal').execute()
+            
+            for ex in (res_unsettled.data or []):
+                ex_paid_by = ex['paid_by']
+                for sp in (ex.get('splits') or []):
+                    if not sp.get('is_settled'):
+                        if (ex_paid_by == debtor_id and sp['user_id'] == creditor_id) or \
+                           (ex_paid_by == creditor_id and sp['user_id'] == debtor_id):
+                            db.table('expense_splits').update({
+                                'is_settled': True,
+                                'settled_at': datetime.utcnow().isoformat()
+                            }).eq('id', sp['id']).execute()
         
     payment_src_text = 'chi từ quỹ chung' if expense.get('payment_source') == 'shared_fund' else 'thành viên trả hộ'
     await notify_trip_members(trip_id, current_user['id'], 'new_expense', 'Chi tiêu mới', f"{expense['title']}: {expense['amount']} ({payment_src_text})")
@@ -142,7 +165,15 @@ async def update_expense(request: Request, expense_in: ExpenseUpdate, current_us
         if participant_ids is not None:
             await save_participants(expense['id'], participant_ids)
         if participant_ids is not None or expense_in.amount is not None:
+            # Re-fetch current participants if not provided
+            if participant_ids is None:
+                p_res = db.table('expense_participants').select('user_id').eq('expense_id', expense['id']).execute()
+                participant_ids = [p['user_id'] for p in (p_res.data or [])]
             db.table('expense_splits').delete().eq('expense_id', expense['id']).execute()
+            amount = float(expense.get('amount', 0))
+            splits = compute_equal_splits(amount, participant_ids, expense['id'])
+            if splits:
+                db.table('expense_splits').insert(splits).execute()
             
     return expense
 

@@ -36,9 +36,16 @@ def validate_client_return_url(value: str) -> str:
         client_parsed = urlparse(momo_config['clientUrl'])
         if parsed.scheme == client_parsed.scheme and parsed.netloc == client_parsed.netloc:
             return value
-    except:
-        pass
-    raise ApiError(422, 'return_url must use the ustrip scheme or the configured web client origin')
+        # Allow localhost testing explicitly
+        if parsed.hostname in ['localhost', '127.0.0.1']:
+            return value
+        # Allow local network IP
+        if parsed.hostname and (parsed.hostname.startswith('192.168.') or parsed.hostname.startswith('172.') or parsed.hostname.startswith('10.')):
+            return value
+    except Exception as e:
+        print(f"Error parsing url: {e}")
+    raise ApiError(422, f'return_url ({value}) must use the ustrip scheme or match the configured web client origin ({momo_config["clientUrl"]})')
+
 
 def payment_return_url(payment: Dict[str, Any], status: str) -> str:
     fallback = f"{momo_config['clientUrl']}/trips/{payment.get('trip_id')}/fund"
