@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from datetime import date
 
 class ExpenseBase(BaseModel):
@@ -16,6 +16,7 @@ class ExpenseBase(BaseModel):
 
 class ExpenseCreate(ExpenseBase):
     participants: Optional[List[str]] = []
+    exact_splits: Optional[List[Dict[str, Any]]] = None
 
 class ExpenseUpdate(BaseModel):
     title: Optional[str] = None
@@ -29,6 +30,7 @@ class ExpenseUpdate(BaseModel):
     note: Optional[str] = None
     expense_date: Optional[date] = None
     participants: Optional[List[str]] = None
+    exact_splits: Optional[List[Dict[str, Any]]] = None
 
 class SettleSplitRequest(BaseModel):
     is_settled: bool = True

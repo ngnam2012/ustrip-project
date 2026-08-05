@@ -16,11 +16,17 @@ async def assert_personal_payer(trip_id: str, payer_id: str):
     if not res.data:
         raise ApiError(422, 'Personal expense payer must be a member of the trip')
 
-async def normalize_participants(trip_id: str, participants: List[str]) -> List[str]:
+async def normalize_participants(trip_id: str, participants: List[str], fetch_all_if_empty: bool = False) -> List[str]:
     if not participants:
+        if fetch_all_if_empty:
+            res = db.table('trip_members').select('user_id').eq('trip_id', trip_id).execute()
+            return [m['user_id'] for m in (res.data or [])]
         raise ApiError(422, 'Select at least one person this expense was paid for')
     unique_ids = list(set([p for p in participants if p]))
     if not unique_ids:
+        if fetch_all_if_empty:
+            res = db.table('trip_members').select('user_id').eq('trip_id', trip_id).execute()
+            return [m['user_id'] for m in (res.data or [])]
         raise ApiError(422, 'Select at least one person this expense was paid for')
         
     res = db.table('trip_members').select('user_id').eq('trip_id', trip_id).in_('user_id', unique_ids).execute()
@@ -86,9 +92,7 @@ async def create_expense(request: Request, expense_in: ExpenseCreate, current_us
     trip_id = request.path_params.get('tripId')
     payload = await normalize_expense_payload(request, expense_in.model_dump(exclude_unset=True), current_user)
     
-    participant_ids = []
-    if payload.get('payment_source') == 'personal':
-        participant_ids = await normalize_participants(trip_id, expense_in.participants or [])
+    participant_ids = await normalize_participants(trip_id, expense_in.participants or [], fetch_all_if_empty=(payload.get('payment_source') == 'shared_fund'))
         
     payload['trip_id'] = trip_id
     res = db.table('expenses').insert(payload).execute()
@@ -96,15 +100,30 @@ async def create_expense(request: Request, expense_in: ExpenseCreate, current_us
         raise ApiError(500, 'Failed to create expense')
     expense = res.data[0]
     
-    if expense.get('payment_source') == 'personal':
-        await save_participants(expense['id'], participant_ids)
-        # Auto-generate splits so settlements work immediately
-        amount = float(expense.get('amount', 0))
+    await save_participants(expense['id'], participant_ids)
+    
+    amount = float(expense.get('amount', 0))
+    splits = []
+    if payload.get('split_method') == 'exact':
+        exact = expense_in.exact_splits or []
+        total_exact = sum(float(s.get('amount_owed', 0)) for s in exact)
+        if abs(total_exact - amount) > 0.01:
+            raise ApiError(422, f'Total exact splits ({total_exact}) must equal expense amount ({amount})')
+        for s in exact:
+            splits.append({
+                'expense_id': expense['id'],
+                'user_id': s['user_id'],
+                'amount_owed': float(s['amount_owed']),
+                'is_settled': False
+            })
+    else:
         splits = compute_equal_splits(amount, participant_ids, expense['id'])
-        if splits:
-            db.table('expense_splits').delete().eq('expense_id', expense['id']).execute()
-            db.table('expense_splits').insert(splits).execute()
+        
+    if splits:
+        db.table('expense_splits').delete().eq('expense_id', expense['id']).execute()
+        db.table('expense_splits').insert(splits).execute()
             
+    if expense.get('payment_source') == 'personal':
         if payload.get('title') == 'Thanh toán nợ tối ưu' and len(participant_ids) == 1:
             debtor_id = expense['paid_by']
             creditor_id = participant_ids[0]
@@ -123,7 +142,8 @@ async def create_expense(request: Request, expense_in: ExpenseCreate, current_us
                             }).eq('id', sp['id']).execute()
         
     payment_src_text = 'chi từ quỹ chung' if expense.get('payment_source') == 'shared_fund' else 'thành viên trả hộ'
-    await notify_trip_members(trip_id, current_user['id'], 'new_expense', 'Chi tiêu mới', f"{expense['title']}: {expense['amount']} ({payment_src_text})")
+    actor_name = current_user.get('full_name') or 'Một thành viên'
+    await notify_trip_members(trip_id, current_user['id'], 'new_expense', 'Chi tiêu mới', f"{actor_name} đã thêm chi tiêu {expense['title']}: {expense['amount']} ({payment_src_text})")
     
     return expense
 
@@ -150,36 +170,59 @@ async def update_expense(request: Request, expense_in: ExpenseUpdate, current_us
     payload = await normalize_expense_payload(request, expense_in.model_dump(exclude_unset=True), current_user, existing)
     
     participant_ids = None
-    if payload.get('payment_source') == 'personal' and (expense_in.participants is not None or existing.get('payment_source') != 'personal'):
-        participant_ids = await normalize_participants(existing['trip_id'], expense_in.participants or [])
+    if expense_in.participants is not None or existing.get('payment_source') != payload.get('payment_source'):
+        participant_ids = await normalize_participants(existing['trip_id'], expense_in.participants or [], fetch_all_if_empty=(payload.get('payment_source') == 'shared_fund'))
         
     res = db.table('expenses').update(payload).eq('id', expense_id).execute()
     if not res.data:
         raise ApiError(500, 'Failed to update expense')
     expense = res.data[0]
     
-    if expense.get('payment_source') == 'shared_fund':
-        db.table('expense_participants').delete().eq('expense_id', expense['id']).execute()
-        db.table('expense_splits').delete().eq('expense_id', expense['id']).execute()
-    else:
-        if participant_ids is not None:
-            await save_participants(expense['id'], participant_ids)
-        if participant_ids is not None or expense_in.amount is not None:
-            # Re-fetch current participants if not provided
-            if participant_ids is None:
-                p_res = db.table('expense_participants').select('user_id').eq('expense_id', expense['id']).execute()
-                participant_ids = [p['user_id'] for p in (p_res.data or [])]
-            db.table('expense_splits').delete().eq('expense_id', expense['id']).execute()
-            amount = float(expense.get('amount', 0))
-            splits = compute_equal_splits(amount, participant_ids, expense['id'])
-            if splits:
-                db.table('expense_splits').insert(splits).execute()
+    if participant_ids is not None:
+        await save_participants(expense['id'], participant_ids)
+    
+    if participant_ids is not None or expense_in.amount is not None or payload.get('split_method') == 'exact':
+        if participant_ids is None:
+            p_res = db.table('expense_participants').select('user_id').eq('expense_id', expense['id']).execute()
+            participant_ids = [p['user_id'] for p in (p_res.data or [])]
             
+        db.table('expense_splits').delete().eq('expense_id', expense['id']).execute()
+        amount = float(expense.get('amount', 0))
+        splits = []
+        if payload.get('split_method') == 'exact' or (existing.get('split_method') == 'exact' and payload.get('split_method') != 'equal'):
+            exact = expense_in.exact_splits or []
+            total_exact = sum(float(s.get('amount_owed', 0)) for s in exact)
+            if abs(total_exact - amount) > 0.01:
+                raise ApiError(422, f'Total exact splits ({total_exact}) must equal expense amount ({amount})')
+            for s in exact:
+                splits.append({
+                    'expense_id': expense['id'],
+                    'user_id': s['user_id'],
+                    'amount_owed': float(s['amount_owed']),
+                    'is_settled': False
+                })
+        else:
+            splits = compute_equal_splits(amount, participant_ids, expense['id'])
+            
+        if splits:
+            db.table('expense_splits').insert(splits).execute()
+            
+    payment_src_text = 'chi từ quỹ chung' if expense.get('payment_source') == 'shared_fund' else 'thành viên trả hộ'
+    actor_name = current_user.get('full_name') or 'Một thành viên'
+    await notify_trip_members(expense['trip_id'], current_user['id'], 'new_expense', 'Cập nhật chi tiêu', f"{actor_name} đã sửa chi tiêu {expense['title']}: {expense['amount']} ({payment_src_text})")
+    
     return expense
 
 @router.delete("/expenses/{expenseId}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_expense(request: Request, current_user: Dict[str, Any] = Depends(require_expense_member)):
     expense_id = request.path_params.get('expenseId')
+    
+    res = db.table('expenses').select('trip_id, title').eq('id', expense_id).execute()
+    if res.data:
+        ex = res.data[0]
+        actor_name = current_user.get('full_name') or 'Một thành viên'
+        await notify_trip_members(ex['trip_id'], current_user['id'], 'new_expense', 'Xóa chi tiêu', f"{actor_name} đã xóa khoản chi {ex['title']}")
+        
     db.table('expenses').delete().eq('id', expense_id).execute()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
@@ -205,6 +248,9 @@ async def split_expense(request: Request, current_user: Dict[str, Any] = Depends
         
     db.table('expense_splits').delete().eq('expense_id', expense_id).execute()
     splits_res = db.table('expense_splits').insert(splits).execute()
+    
+    db.table('expenses').update({'split_method': 'equal'}).eq('id', expense_id).execute()
+    
     return splits_res.data or []
 
 @router.get("/trips/{tripId}/settlements")

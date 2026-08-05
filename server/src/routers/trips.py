@@ -223,3 +223,22 @@ async def list_reminders(request: Request, current_user: Dict[str, Any] = Depend
     res = db.table('reminders').select('*,recipient:profiles!recipient_id(id,full_name,email,avatar_url)').eq('trip_id', trip_id).order('sent_at', desc=True).execute()
     return res.data or []
 
+<<<<<<< HEAD
+=======
+@router.get("/{tripId}/audit-logs")
+async def get_audit_logs(request: Request, current_user: Dict[str, Any] = Depends(get_trip_member)):
+    trip_id = request.path_params.get('tripId')
+    res = db.table('notifications').select('*').eq('trip_id', trip_id).order('created_at', desc=True).execute()
+    notifications = res.data or []
+    
+    unique_logs = []
+    seen = set()
+    for n in notifications:
+        # Group by title and message to avoid duplicates
+        key = (n.get('title'), n.get('message'))
+        if key not in seen:
+            seen.add(key)
+            unique_logs.append(n)
+            
+    return unique_logs
+>>>>>>> 215e139ed5ef41b08d041155dbef3e6b2f3b02f5

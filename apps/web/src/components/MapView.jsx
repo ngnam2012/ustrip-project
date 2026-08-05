@@ -40,7 +40,7 @@ export function ActivityMarker({ activity }) {
 
 export function MapView({ activities = [], selected, onPick, height = 360 }) {
   const places = activities.filter(valid);
-  const center = selected && valid(selected) ? coords(selected) : places.length ? coords(places[0]) : [10.7769, 106.7009];
+  const center = selected && valid(selected) ? coords(selected) : places.length ? coords(places[0]) : [11.9404, 108.4583];
   try {
     return <div className="overflow-hidden rounded-2xl border border-slate-200 shadow-card" style={{ height }}>
       <MapContainer center={center} zoom={places.length ? 13 : 6} scrollWheelZoom className="h-full w-full">
@@ -62,7 +62,7 @@ export function LocationSearchInput({ value, onChange, onSelect }) {
     if (!value?.trim()) return;
     setLoading(true);
     try {
-      const response = await fetch(`${nominatimUrl}/search?format=jsonv2&limit=5&q=${encodeURIComponent(value)}`);
+      const response = await fetch(`${nominatimUrl}/search?format=jsonv2&limit=5&viewbox=107.9,11.7,108.8,12.2&bounded=1&q=${encodeURIComponent(value)}`);
       setResults(await response.json());
     } finally { setLoading(false); }
   };

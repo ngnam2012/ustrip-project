@@ -19,6 +19,7 @@ import { SettlementsPage } from './pages/SettlementsPage';
 import { ChatPage } from './pages/ChatPage';
 import { AiPlacesPage } from './pages/AiPlacesPage';
 import { OtaPage } from './pages/OtaPage';
+import { AuditLogPage } from './pages/AuditLogPage';
 
 import { InvitationsPage } from './pages/InvitationsPage';
 
@@ -48,6 +49,7 @@ export default function App() {
       <Route path="/trips/:tripId/expenses/:expenseId" element={<ExpenseDetailPage/>}/>
       <Route path="/trips/:tripId/settlements" element={<SettlementsPage/>}/>
       <Route path="/trips/:tripId/finance" element={<FinancePage/>}/>
+      <Route path="/trips/:tripId/audit" element={<AuditLogPage/>}/>
       <Route path="/trips/:tripId/reminders" element={<RemindersPage/>}/>
       <Route path="/trips/:tripId/ai" element={<AiPage/>}/>
       <Route path="/trips/:tripId/chat" element={<ChatPage/>}/>

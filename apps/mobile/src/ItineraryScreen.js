@@ -103,7 +103,7 @@ export default function ItineraryScreen({ route, navigation }) {
         {filteredActivities.some(validCoord) && (
           <View style={{ marginBottom: SP.lg }}>
              <Text style={[S.h2, { marginBottom: SP.md }]}>Bản đồ</Text>
-             <MobileMap activities={filteredActivities} />
+             <MobileMap key={selectedDate} activities={filteredActivities} />
           </View>
         )}
 

@@ -14,14 +14,20 @@ def get_ai():
         _ai_client = genai.Client(api_key=settings.GEMINI_API_KEY)
     return _ai_client
 
+# MVP: Lock destination to Đà Lạt
+MVP_DESTINATION = "Đà Lạt, Lâm Đồng"
+
 async def generate_itinerary(destination: str, days: int, budget: str, style: str, group: int):
     client = get_ai()
     if not client:
         raise ValueError('API key của Google Gemini chưa được cấu hình. Vui lòng thêm GEMINI_API_KEY vào .env.')
+    
+    # MVP: Override destination to Đà Lạt
+    destination = MVP_DESTINATION
         
     prompt = f"""
-Bạn là một chuyên gia du lịch am hiểu về các điểm đến.
-Hãy lên một lịch trình chuyến đi chi tiết với các thông tin sau:
+Bạn là một chuyên gia du lịch am hiểu về Đà Lạt, Lâm Đồng, Việt Nam.
+Hãy lên một lịch trình chuyến đi chi tiết tại Đà Lạt với các thông tin sau:
 - Điểm đến: {destination}
 - Số ngày: {days} ngày
 - Ngân sách dự kiến: {budget}
@@ -71,9 +77,12 @@ async def suggest_places(destination: str, category: str):
     client = get_ai()
     if not client:
         raise ValueError('API key của Google Gemini chưa được cấu hình. Vui lòng thêm GEMINI_API_KEY vào .env.')
+    
+    # MVP: Override destination to Đà Lạt
+    destination = MVP_DESTINATION
         
     prompt = f"""
-Bạn là một chuyên gia du lịch am hiểu về các điểm đến.
+Bạn là một chuyên gia du lịch am hiểu về Đà Lạt, Lâm Đồng, Việt Nam.
 Hãy đề xuất 5 địa điểm nổi bật thuộc danh mục "{category}" tại "{destination}".
 
 Trả về kết quả dưới định dạng JSON với cấu trúc mảng.

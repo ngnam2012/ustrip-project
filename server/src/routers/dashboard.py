@@ -78,3 +78,71 @@ async def dashboard(request: Request, current_user: Dict[str, Any] = Depends(get
         "map_activities": activity_rows,
         "recent_expenses": expenses_res.data or []
     }
+
+@router.get("/trips/{tripId}/member-reports")
+async def member_reports(request: Request, current_user: Dict[str, Any] = Depends(get_trip_member)):
+    trip_id = request.path_params.get('tripId')
+    
+    # 1. Fetch members
+    members_res = db.table('trip_members').select('user_id, profile:profiles(id,full_name,avatar_url)').eq('trip_id', trip_id).execute()
+    members = members_res.data or []
+    
+    # 2. Fetch fund contributions
+    contrib_res = db.table('fund_contributions').select('user_id,amount').eq('trip_id', trip_id).eq('payment_status', 'success').execute()
+    contributions = contrib_res.data or []
+    
+    # 3. Fetch ALL expenses and splits
+    expenses_res = db.table('expenses').select('id,title,amount,paid_by,payment_source,splits:expense_splits(user_id,amount_owed,is_settled)').eq('trip_id', trip_id).execute()
+    expenses = expenses_res.data or []
+    
+    reports = {m['user_id']: {
+        "user_id": m['user_id'], 
+        "profile": m['profile'],
+        "fund_contributed": 0,
+        "fund_consumed": 0,
+        "fund_balance": 0,
+        "personal_paid": 0,
+        "personal_consumed": 0,
+        "personal_balance": 0
+    } for m in members}
+    
+    # Aggregate fund contributions
+    for c in contributions:
+        uid = c['user_id']
+        if uid in reports:
+            reports[uid]['fund_contributed'] += float(c.get('amount', 0))
+            
+    # Aggregate expenses
+    for expense in expenses:
+        payer_id = expense['paid_by']
+        source = expense.get('payment_source')
+        is_settlement = (expense.get('title') == 'Thanh toán nợ tối ưu')
+        
+        splits = expense.get('splits') or []
+        for split in splits:
+            uid = split['user_id']
+            amount_owed = float(split['amount_owed'])
+            
+            if source == 'shared_fund':
+                if uid in reports:
+                    reports[uid]['fund_consumed'] += amount_owed
+            elif source == 'personal':
+                # Personal consumed (ignore settlements for the consumption total)
+                if not is_settlement and uid in reports:
+                    reports[uid]['personal_consumed'] += amount_owed
+                
+                # Personal balance (unsettled debts)
+                if not split.get('is_settled') and uid != payer_id:
+                    if uid in reports:
+                        reports[uid]['personal_balance'] -= amount_owed
+                    if payer_id in reports:
+                        reports[payer_id]['personal_balance'] += amount_owed
+
+        if source == 'personal' and not is_settlement and payer_id in reports:
+            reports[payer_id]['personal_paid'] += float(expense.get('amount', 0))
+            
+    # Final calculations
+    for uid, rep in reports.items():
+        rep['fund_balance'] = rep['fund_contributed'] - rep['fund_consumed']
+        
+    return list(reports.values())
