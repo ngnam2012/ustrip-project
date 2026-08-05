@@ -23,7 +23,7 @@ export function AiPlacesPage() {
     try {
       const res = await api(`/trips/${tripId}/ai/places`, {
         method: "POST",
-        body: { destination: tripData?.destination || "Đà Lạt", category },
+        body: { destination: "Đà Lạt", category },
       });
       setResult(res.places);
     } catch (err) {
@@ -42,9 +42,10 @@ export function AiPlacesPage() {
             <label>Điểm đến</label>
             <input
               disabled
-              value={tripData?.destination || ""}
+              value="Đà Lạt"
               className="bg-slate-50"
             />
+            <p className="mt-1 text-xs text-slate-400">MVP: Hiện chỉ hỗ trợ Đà Lạt</p>
           </div>
           <div>
             <label>Danh mục</label>

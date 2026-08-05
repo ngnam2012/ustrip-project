@@ -11,7 +11,9 @@ const validCoord = (value) =>
 export default function MobileMap({ activities = [], onPick, height = 280 }) {
   const mapRef = useRef(null);
   const places = activities.filter(validCoord);
-  const first = places[0] || { latitude: 10.7769, longitude: 106.7009 };
+  const first = places[0] || { latitude: 11.9404, longitude: 108.4583 };
+
+  const placesKey = places.map(p => p.id || `${p.latitude},${p.longitude}`).join('-');
 
   // Auto-zoom to fit all markers when multiple places exist
   useEffect(() => {
@@ -30,7 +32,7 @@ export default function MobileMap({ activities = [], onPick, height = 280 }) {
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [places.length]);
+  }, [placesKey]);
 
   return <View style={{ height, borderRadius: 20, overflow: 'hidden' }}>
     <MapView

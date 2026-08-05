@@ -426,7 +426,7 @@ function Trips({ navigation }) {
 function CreateTrip({ route, navigation }) {
   const [f, setF] = useState({
     name: "",
-    destination: "",
+    destination: "Đà Lạt",
     start_date: "",
     end_date: "",
     estimated_budget: "",
@@ -451,9 +451,10 @@ function CreateTrip({ route, navigation }) {
         />
         <Field
           label="Điểm đến"
-          value={f.destination}
-          onChangeText={(v) => setF({ ...f, destination: v })}
+          value="Đà Lạt"
+          editable={false}
         />
+        <Text style={{ fontSize: 11, color: C.muted, marginTop: -8, marginBottom: 8 }}>MVP: Hiện chỉ hỗ trợ Đà Lạt</Text>
         <Field
           label="Ngày bắt đầu (YYYY-MM-DD)"
           value={f.start_date}
@@ -846,8 +847,8 @@ function AddActivity({ route, navigation }) {
     location: "",
     location_name: "",
     address: "",
-    latitude: 10.7769,
-    longitude: 106.7009,
+    latitude: 11.9404,
+    longitude: 108.4583,
     map_provider: "openstreetmap",
     estimated_cost: "",
     notes: "",
@@ -859,7 +860,7 @@ function AddActivity({ route, navigation }) {
     setSearching(true);
     try {
       const res = await fetch(
-        `${NOMINATIM}/search?format=jsonv2&limit=5&q=${encodeURIComponent(f.location)}`,
+        `${NOMINATIM}/search?format=jsonv2&limit=5&viewbox=107.9,11.7,108.8,12.2&bounded=1&q=${encodeURIComponent(f.location)}`,
       );
       setSearchResults(await res.json());
     } catch (e) {
@@ -1453,7 +1454,7 @@ function Finance({ route }) {
 function AI({ route, navigation }) {
   const trip = route.params.trip;
   const [f, setF] = useState({
-    destination: trip.destination || "",
+    destination: "Đà Lạt",
     days: "4",
     budget: "12.000.000đ",
     style: "Khám phá & ẩm thực",
@@ -1523,9 +1524,10 @@ function AI({ route, navigation }) {
         <AnimatedCard>
           <Field
             label="Điểm đến"
-            value={f.destination}
-            onChangeText={(v) => setF({ ...f, destination: v })}
+            value="Đà Lạt"
+            editable={false}
           />
+          <Text style={{ fontSize: 11, color: C.muted, marginTop: -8, marginBottom: 8 }}>MVP: Hiện chỉ hỗ trợ Đà Lạt</Text>
           <View style={{ flexDirection: "row", gap: SP.sm }}>
             <View style={{ flex: 1 }}>
               <Field
@@ -1650,7 +1652,7 @@ function AiPlaces({ route, navigation }) {
     try {
       const res = await api(`/trips/${trip.id}/ai/places`, {
         method: "POST",
-        body: { destination: trip.destination || "Đà Lạt", category },
+        body: { destination: "Đà Lạt", category },
       });
       setResult(res.places);
     } catch (e) {
@@ -1666,7 +1668,7 @@ function AiPlaces({ route, navigation }) {
         <AnimatedCard>
           <Field
             label="Điểm đến"
-            value={trip.destination || "Đà Lạt"}
+            value="Đà Lạt"
             editable={false}
           />
           <Field

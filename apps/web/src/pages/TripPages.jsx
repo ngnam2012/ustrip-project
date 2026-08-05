@@ -117,7 +117,7 @@ function TripForm({ onClose, onSaved }) {
   const navigate = useNavigate();
   const [form, setForm] = useState({
     name: '',
-    destination: '',
+    destination: 'Đà Lạt',
     start_date: '',
     end_date: '',
     estimated_budget: '',
@@ -155,11 +155,11 @@ function TripForm({ onClose, onSaved }) {
         <div className="sm:col-span-2">
           <label>Điểm đến</label>
           <input
-            required
-            placeholder="VD: Đà Lạt, Lâm Đồng"
-            value={form.destination}
-            onChange={e => setForm({ ...form, destination: e.target.value })}
+            disabled
+            value="Đà Lạt"
+            className="bg-slate-50"
           />
+          <p className="mt-1 text-xs text-slate-400">MVP: Hiện chỉ hỗ trợ Đà Lạt</p>
         </div>
         <div>
           <label>Ngày bắt đầu</label>
