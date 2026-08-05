@@ -7,6 +7,7 @@ create type expense_payment_source as enum ('shared_fund', 'personal');
 create type split_method as enum ('equal');
 create type notification_type as enum ('contribution_reminder', 'new_expense', 'itinerary_update', 'member_added');
 create type payment_status as enum ('pending', 'success', 'failed', 'cancelled', 'expired');
+create type invitation_status as enum ('pending', 'accepted', 'declined');
 
 create table profiles (
   id uuid primary key default gen_random_uuid(),
@@ -42,6 +43,7 @@ create table trip_members (
   contribution_status contribution_status not null default 'unpaid',
   paid_amount numeric(14,2) not null default 0 check (paid_amount >= 0),
   remaining_amount numeric(14,2) not null default 0 check (remaining_amount >= 0),
+  invitation_status invitation_status not null default 'accepted',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique(trip_id, user_id)
@@ -197,6 +199,7 @@ create table reminders (
 create index idx_trips_created_by on trips(created_by);
 create index idx_trip_members_user on trip_members(user_id);
 create index idx_trip_members_trip on trip_members(trip_id);
+create index idx_trip_members_invitation_status on trip_members(user_id, invitation_status);
 create index idx_activities_trip_date on itinerary_activities(trip_id, activity_date);
 create index idx_contributions_trip on fund_contributions(trip_id);
 create index idx_payments_trip_status on payments(trip_id, status);

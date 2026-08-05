@@ -21,6 +21,8 @@ import { AiPlacesPage } from './pages/AiPlacesPage';
 import { OtaPage } from './pages/OtaPage';
 import { AuditLogPage } from './pages/AuditLogPage';
 
+import { InvitationsPage } from './pages/InvitationsPage';
+
 function Protected({ children }) {
   const { user, loading } = useAuth();
   if (loading) return <Loader label="Đang mở UsTrip..."/>;
@@ -34,6 +36,7 @@ export default function App() {
     <Route path="/register" element={<AuthPage mode="register"/>}/>
     <Route element={<Protected><Layout/></Protected>}>
       <Route path="/app" element={<TripsPage/>}/>
+      <Route path="/invitations" element={<InvitationsPage/>}/>
       <Route path="/notifications" element={<NotificationsPage/>}/>
       <Route path="/profile" element={<ProfilePage/>}/>
       <Route path="/trips/:tripId" element={<TripOverview/>}/>

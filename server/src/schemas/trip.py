@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, EmailStr
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Literal
 from datetime import datetime, date
 
 class TripCreate(BaseModel):
@@ -33,3 +33,6 @@ class UpdateMemberRequest(BaseModel):
 class CreateReminderRequest(BaseModel):
     recipient_id: str
     message: Optional[str] = 'Nhắc bạn hoàn tất khoản đóng góp cho chuyến đi.'
+
+class RespondInvitationRequest(BaseModel):
+    action: Literal['accept', 'decline']
