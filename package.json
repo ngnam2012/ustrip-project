@@ -9,7 +9,7 @@
     "dev": "concurrently --kill-others-on-fail --names API,WEB,MOBILE --prefix-colors blue,green,magenta \"npm run dev:server\" \"npm run dev:web\" \"npm run dev:mobile\"",
     "dev:web": "npm run dev -w apps/web",
     "dev:mobile": "npm run start -w apps/mobile",
-    "dev:server": "cd server && uvicorn src.main:socket_app --host 0.0.0.0 --port 5000 --reload",
+    "dev:server": "cd server && python -m uvicorn src.main:socket_app --host 0.0.0.0 --port 5000 --reload",
     "check": "npm run build -w apps/web",
     "db:push": "node database/migrate.js"
   },
