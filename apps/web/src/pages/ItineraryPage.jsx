@@ -29,21 +29,72 @@ export function ItineraryPage() {
   };
 
   const editActivity = (activity) => {
-    setEditingActivity(activity);
+    // If this is an expanded occurrence, load the original full activity
+    (async () => {
+      try {
+        if (activity?.original_id && data) {
+          const orig = data.find((a) => a.id === activity.original_id);
+          if (orig) return setEditingActivity(orig);
+          // fallback: fetch from API
+          const fetched = await api(`/activities/${activity.original_id}`);
+          return setEditingActivity(fetched);
+        }
+      } catch (e) {
+        // ignore and fall through
+      }
+      setEditingActivity(activity);
+    })();
   };
-  const groups = useMemo(
-    () =>
-      Object.groupBy
-        ? Object.groupBy(data || [], (x) => x.activity_date)
-        : (data || []).reduce(
-            (r, x) => ({
-              ...r,
-              [x.activity_date]: [...(r[x.activity_date] || []), x],
-            }),
-            {},
-          ),
-    [data],
-  );
+  const occurrences = useMemo(() => {
+    if (!data) return [];
+    const out = [];
+    for (const act of data) {
+      const start = new Date(act.activity_date);
+      const end = act.end_date ? new Date(act.end_date) : new Date(act.activity_date);
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        const dateStr = new Date(d).toISOString().split("T")[0];
+        const isFirst = dateStr === (act.activity_date || dateStr);
+        const isLast = dateStr === (act.end_date || act.activity_date || dateStr);
+        let occStart = null;
+        let occEnd = null;
+        if (isFirst) {
+          occStart = act.start_time ? act.start_time.slice(0, 5) : null;
+          occEnd = isLast ? (act.end_time ? act.end_time.slice(0, 5) : null) : "23:59";
+        } else if (isLast) {
+          occStart = "00:00";
+          occEnd = act.end_time ? act.end_time.slice(0, 5) : null;
+        } else {
+          occStart = "00:00";
+          occEnd = "23:59";
+        }
+        out.push({
+          ...act,
+          original_id: act.id,
+          activity_date: dateStr,
+          start_time: occStart,
+          end_time: occEnd,
+          is_continuation: !isFirst,
+        });
+      }
+    }
+    return out;
+  }, [data]);
+
+  const groups = useMemo(() => {
+    const items = occurrences || [];
+    const grouped = Object.groupBy
+      ? Object.groupBy(items, (x) => x.activity_date)
+      : items.reduce((r, x) => ({ ...r, [x.activity_date]: [...(r[x.activity_date] || []), x] }), {});
+    // sort each day's items by start_time (nulls at end)
+    Object.keys(grouped).forEach((k) => {
+      grouped[k].sort((a, b) => {
+        const ta = a.start_time || "";
+        const tb = b.start_time || "";
+        return ta < tb ? -1 : ta > tb ? 1 : 0;
+      });
+    });
+    return grouped;
+  }, [occurrences]);
   if (loading) return <Loader />;
   return (
     <>
@@ -127,17 +178,20 @@ function ItineraryDay({ date, items, tripId, onEdit, onDelete }) {
           >
             {items.map((item) => (
               <div
-                key={item.id}
+                key={`${item.original_id || item.id}-${item.activity_date}`}
                 className="card relative block border-l-4 border-l-travel/80 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lift hover:border-l-travel"
               >
                 <span className="absolute -left-[32px] top-6 h-3 w-3 rounded-full bg-travel ring-4 ring-blue-50 shadow-sm" />
                 <div className="flex flex-wrap justify-between gap-3">
                   <div>
                     <Link
-                      to={`/trips/${tripId}/activities/${item.id}`}
+                      to={`/trips/${tripId}/activities/${item.original_id || item.id}`}
                       className="font-bold text-ink hover:text-travel"
                     >
                       {item.title}
+                      {item.is_continuation && (
+                        <span className="ml-2 text-xs text-slate-400">(Tiếp tục)</span>
+                      )}
                     </Link>
                     <p className="mt-2 flex items-center gap-1.5 text-sm text-slate-500">
                       <MapPin size={14} />
@@ -201,7 +255,7 @@ function ActivityForm({ tripId, members = [], activity, onClose, onSaved }) {
       setFormData({
         title: activity.title || "",
         start_datetime: `${activity.activity_date || ""}T${activity.start_time?.slice(0, 5) || "00:00"}`,
-        end_datetime: `${activity.activity_date || ""}T${activity.end_time?.slice(0, 5) || "00:00"}`,
+        end_datetime: `${activity.end_date || activity.activity_date || ""}T${activity.end_time?.slice(0, 5) || "00:00"}`,
         location: activity.location || "",
         location_name: activity.location_name || activity.location || "",
         address: activity.address || "",
@@ -239,6 +293,7 @@ function ActivityForm({ tripId, members = [], activity, onClose, onSaved }) {
         body: {
           title: formData.title,
           activity_date: startDate[0] || "",
+          end_date: endDate[0] || startDate[0] || "",
           start_time: startDate[1] || "",
           end_time: endDate[1] || "",
           location: formData.location,

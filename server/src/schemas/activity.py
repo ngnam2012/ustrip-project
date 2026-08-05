@@ -5,6 +5,7 @@ from datetime import datetime, date, time
 class ActivityBase(BaseModel):
     title: str = Field(min_length=1)
     activity_date: date
+    end_date: Optional[date] = None
     start_time: Optional[time] = None
     end_time: Optional[time] = None
     location: Optional[str] = None
@@ -23,6 +24,7 @@ class ActivityCreate(ActivityBase):
 class ActivityUpdate(BaseModel):
     title: Optional[str] = None
     activity_date: Optional[date] = None
+    end_date: Optional[date] = None
     start_time: Optional[time] = None
     end_time: Optional[time] = None
     location: Optional[str] = None
