@@ -131,6 +131,12 @@ function TripForm({ onClose, onSaved }) {
       setError('Vui lòng nhập ngân sách dự kiến (nhập 0 nếu chưa có).');
       return;
     }
+    if (form.start_date && form.end_date) {
+      if (new Date(form.start_date) > new Date(form.end_date)) {
+        setError('Ngày bắt đầu không được sau ngày kết thúc.');
+        return;
+      }
+    }
     try {
       const trip = await api('/trips', { method: 'POST', body: form });
       onSaved();
