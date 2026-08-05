@@ -841,6 +841,7 @@ function AddActivity({ route, navigation }) {
   const [f, setF] = useState({
     title: "",
     activity_date: "",
+    end_date: "",
     start_time: "",
     end_time: "",
     location: "",
@@ -854,6 +855,7 @@ function AddActivity({ route, navigation }) {
     notes: "",
   });
   const [members, setMembers] = useState([]);
+  const [editingId, setEditingId] = useState(null);
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
 
@@ -866,6 +868,37 @@ function AddActivity({ route, navigation }) {
       }));
     });
   }, [trip.id]);
+
+  useEffect(() => {
+    const aid = route.params?.activityId || route.params?.activity?.id;
+    if (!aid) return;
+    (async () => {
+      try {
+        const act = await api(`/activities/${aid}`);
+        if (act) {
+          setEditingId(act.id);
+          setF({
+            title: act.title || "",
+            activity_date: act.activity_date || "",
+            end_date: act.end_date || act.activity_date || "",
+            start_time: act.start_time || "",
+            end_time: act.end_time || "",
+            location: act.location || "",
+            location_name: act.location_name || act.location || "",
+            address: act.address || "",
+            latitude: act.latitude || 10.7769,
+            longitude: act.longitude || 106.7009,
+            map_provider: act.map_provider || "openstreetmap",
+            estimated_cost: act.estimated_cost ? String(act.estimated_cost).replace(/\B(?=(\d{3})+(?!\d))/g, ".") : "",
+            participants: act.participants?.map((p) => p.user_id) || [],
+            notes: act.notes || "",
+          });
+        }
+      } catch (e) {
+        Alert.alert('Lỗi', e.message);
+      }
+    })();
+  }, [route.params]);
 
   const searchLocation = async () => {
     if (!f.location?.trim()) return;
@@ -925,7 +958,7 @@ function AddActivity({ route, navigation }) {
   return (
     <SafeAreaView style={S.screen}>
       <ScrollView contentContainerStyle={S.content}>
-        <Header title="Thêm hoạt động" subtitle={trip.name} />
+        <Header title={editingId ? "Chỉnh sửa hoạt động" : "Thêm hoạt động"} subtitle={trip.name} />
         <Field
           label="Tên hoạt động"
           value={f.title}
@@ -935,6 +968,11 @@ function AddActivity({ route, navigation }) {
           label="Ngày (YYYY-MM-DD)"
           value={f.activity_date}
           onChangeText={(v) => setF({ ...f, activity_date: v })}
+        />
+        <Field
+          label="Ngày kết thúc (YYYY-MM-DD)"
+          value={f.end_date}
+          onChangeText={(v) => setF({ ...f, end_date: v })}
         />
         <View style={{ flexDirection: "row", gap: SP.sm }}>
           <View style={{ flex: 1 }}>
@@ -1147,13 +1185,36 @@ function AddContribution({ route, navigation }) {
   };
   const momo = async () => {
     if (busy) return;
-    setBusy(true);
-    try {
-      const cleanAmount = Number(String(f.amount).replace(/[^0-9]/g, ""));
-      const p = await api(`/trips/${trip.id}/contributions/momo/create`, {
-        method: "POST",
-        body: { amount: cleanAmount, return_url: "ustrip://payment-return" },
-      });
+      if (editingId) {
+        await api(`/activities/${editingId}`, {
+          method: 'PATCH',
+          body: {
+            title: f.title,
+            activity_date: f.activity_date,
+            end_date: f.end_date || f.activity_date || null,
+            start_time: f.start_time,
+            end_time: f.end_time,
+            location: f.location,
+            location_name: f.location_name,
+            address: f.address,
+            latitude: f.latitude,
+            longitude: f.longitude,
+            map_provider: f.map_provider,
+            estimated_cost: Number(String(f.estimated_cost).replace(/\D/g, "")) || 0,
+            notes: f.notes,
+            participants: f.participants,
+          },
+        });
+      } else {
+        await api(`/trips/${trip.id}/activities`, {
+          method: "POST",
+          body: {
+            ...f,
+            end_date: f.end_date || f.activity_date || null,
+            estimated_cost: Number(String(f.estimated_cost).replace(/\D/g, "")) || 0,
+          },
+        });
+      }
       setPayment(p);
       await openPayment(p);
     } catch (e) {
