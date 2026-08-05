@@ -22,6 +22,7 @@ import { OtaPage } from './pages/OtaPage';
 import { AuditLogPage } from './pages/AuditLogPage';
 
 import { InvitationsPage } from './pages/InvitationsPage';
+import { ExplorePage, SharedTripDetailPage } from './pages/SharedTripsPages';
 
 function Protected({ children }) {
   const { user, loading } = useAuth();
@@ -36,6 +37,8 @@ export default function App() {
     <Route path="/register" element={<AuthPage mode="register"/>}/>
     <Route element={<Protected><Layout/></Protected>}>
       <Route path="/app" element={<TripsPage/>}/>
+      <Route path="/explore" element={<ExplorePage/>}/>
+      <Route path="/shared-trips/:tripId" element={<SharedTripDetailPage/>}/>
       <Route path="/invitations" element={<InvitationsPage/>}/>
       <Route path="/notifications" element={<NotificationsPage/>}/>
       <Route path="/profile" element={<ProfilePage/>}/>

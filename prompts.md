@@ -1,58 +1,33 @@
-Please process this prompts and create an implematation plan before doing this tasks. 
-> **Task:**
-> Redesign the user invitation flow for a trip-planning feature to change automatic acceptance into a pending invitation state with explicit user consent (Accept/Deny).
-> ---
-> 
-> 
-> ### 1. Current vs. Target Behavior
-> 
-> 
-> * **Current Flow:**
-> User A invites User B via email $\rightarrow$ User B is automatically added to the trip.
-> * **New Target Flow:**
-> User A invites User B via email $\rightarrow$ Invitation status set to `PENDING` $\rightarrow$ User B receives a notification $\rightarrow$ User B explicitly chooses to **Accept** or **Deny** the invitation.
-> 
-> 
-> ---
-> 
-> 
-> ### 2. Technical & UX Requirements
-> 
-> 
-> #### A. Database & State Changes
-> 
-> 
-> * Add or update the trip membership status field: `PENDING`, `ACCEPTED`, `DECLINED`.
-> * Trips with `PENDING` status should **not** appear in the user's primary trip list until accepted (or should be placed in an "Invites / Pending" tab).
-> 
-> 
-> #### B. Notification & UI Experience
-> 
-> 
-> * **In-App Notification:** Create a notification entry for User B (e.g., *"User A invited you to join [Trip Name]"*).
-> * **Actionable UI:** Provide clear, immediate action buttons directly within the notification or pending view: **[Accept]** and **[Decline]**.
-> * **Email Update:** Update the invitation email to direct the user to the in-app notification or a direct link/landing page to confirm/deny.
-> 
-> 
-> #### C. Inviter View (User A)
-> 
-> 
-> * In the trip's member list, display invited users with a **"Pending"** badge until they act.
-> * Provide an option to **Resend Invite** or **Cancel Invite**.
-> 
-> 
-> ---
-> 
-> 
-> ### 3. Deliverables Requested
-> 
-> 
-> Please provide:
-> 1. **User Flow Diagram / Step-by-Step Logic:** Outline each screen, button click, and status transition.
-> 2. **UI/UX Copy:** Write the exact copy for the in-app notification, email, and button labels.
-> 3. **Edge Case Handling:** Detail how to handle expired invites, existing/non-existing users, and duplicate invites.
-> 4. **API / Backend Changes:** List the endpoint modifications or new endpoints needed to process `Accept` and `Decline` actions.
-> 
->
+Design for me a new feature shared trips
 
-Ask me on the go if you're concern with anything and notify me what you changed. Don't change the whole architecture just need to fix the needed part
+1. Core Feature Concept
+"Shared Trips" transforms private trip itineraries into public or link-shared community guides. Users can discover trips created by others, leave ratings and comments, and clone/copy any trip plan directly into their personal account to customize for their own travels.
+
+2. Key Functionalities Required
+A. Public Sharing & Discovery
+Visibility Toggle: Ability for a trip owner to change a trip's status between Private, Shared via Link, and Public (Community).
+
+Community Trip Card / Preview: Showcase trip title, cover photo, total days, main destinations, average rating, total copies/clones, and author profile.
+
+B. Clone / Copy Trip Flow
+"Copy to My Trips" Action: Button on shared trips allowing viewers to duplicate the itinerary into their own account.
+
+Duplication Logic: Copy all locations, daily activities, and notes, but reset user-specific data (e.g., booked ticket confirmations, personal budget items, or private notes).
+
+Attribution: Maintain a line on the copied trip: "Cloned from [Author Name]'s [Original Trip Title]".
+
+C. Community Engagement (Comments & Ratings)
+Rating System: 1–5 star rating system with aggregate averages displayed on the trip header.
+
+Discussion / Comments: Threaded comments section under the trip for questions, travel tips, and feedback.
+
+Moderation Basics: Options to report inappropriate comments or delete owned comments/trips.
+
+3. Requested Deliverables
+Complete Step-by-Step User Flow: From sharing a trip to another user discovering, copying, and rating it.
+
+Data Model / Database Schema: Tables for SharedTrips, TripCopies, TripRatings, and TripComments with foreign keys and indexes.
+
+UI/UX Guidelines & Copy: Recommended copy for call-to-action buttons, empty states, and toast confirmation messages.
+
+Edge Cases & Security: Handling of modified original trips after cloning, deleted author accounts, and permission management.

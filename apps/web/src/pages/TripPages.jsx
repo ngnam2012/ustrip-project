@@ -1,4 +1,4 @@
-import { ArrowRight, CalendarDays, MapPin, Plus, Users, WalletCards, Plane, Camera } from 'lucide-react';
+import { ArrowRight, CalendarDays, MapPin, Plus, Users, WalletCards, Plane, Camera, Share2, Globe, Link2, Lock } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ErrorBox, Loader, Modal } from '../components/ui';
@@ -7,6 +7,7 @@ import { api, currency, dateText } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { MapView } from '../components/MapView';
 import { motion } from 'framer-motion';
+import { ShareTripModal } from './SharedTripsPages';
 
 const statIcons = [
   { bg: 'bg-gradient-to-br from-blue-50 to-blue-100/50', text: 'text-blue-600', icon: WalletCards },
@@ -275,13 +276,25 @@ function TripForm({ onClose, onSaved }) {
 
 export function TripOverview() {
   const { tripId } = useParams();
+  const { user } = useAuth();
   const { data, loading, error } = useRemote(`/trips/${tripId}/dashboard`);
   const finance = useRemote(`/trips/${tripId}/financial-summary`);
+  const [showShare, setShowShare] = useState(false);
+  const [visibility, setVisibility] = useState(null);
   
   if (loading || finance.loading) return <Loader/>;
   
   const f = finance.data || {};
   const trip = data?.trip || {};
+  const isOwner = trip.created_by === user?.id;
+  const currentVisibility = visibility ?? trip.visibility ?? 'private';
+
+  const visibilityBadge = {
+    private: { icon: Lock, label: 'Riêng tư', cls: 'bg-slate-500/20 text-slate-200' },
+    link: { icon: Link2, label: 'Chia sẻ qua link', cls: 'bg-blue-500/20 text-blue-200' },
+    public: { icon: Globe, label: 'Công khai', cls: 'bg-violet-500/20 text-violet-200' },
+  }[currentVisibility] || { icon: Lock, label: 'Riêng tư', cls: 'bg-slate-500/20 text-slate-200' };
+  const VisIcon = visibilityBadge.icon;
   return <>
     <ErrorBox message={error||finance.error}/>
 
@@ -291,11 +304,27 @@ export function TripOverview() {
       <div className="pointer-events-none absolute -left-16 -bottom-16 h-48 w-48 rounded-full bg-violet-500/10 blur-3xl" />
       
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-        <span className="badge bg-white/15 text-white border border-white/10 backdrop-blur-sm">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse-glow" />
-          Chuyến đi sắp tới
-        </span>
-        <h1 className="mt-5 text-4xl font-extrabold tracking-tight">{trip.name}</h1>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <span className="badge bg-white/15 text-white border border-white/10 backdrop-blur-sm">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse-glow" />
+            Chuyến đi sắp tới
+          </span>
+          {isOwner && (
+            <button
+              id="share-trip-btn"
+              onClick={() => setShowShare(true)}
+              className="flex items-center gap-1.5 rounded-xl bg-white/10 border border-white/15 backdrop-blur-sm px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/20 transition"
+            >
+              <Share2 size={13} /> Chia sẻ
+            </button>
+          )}
+        </div>
+        <div className="mt-4 flex items-center gap-2">
+          <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${visibilityBadge.cls}`}>
+            <VisIcon size={11} />{visibilityBadge.label}
+          </span>
+        </div>
+        <h1 className="mt-4 text-4xl font-extrabold tracking-tight">{trip.name}</h1>
         <p className="mt-2.5 flex items-center gap-2 text-blue-100/80"><MapPin size={18}/>{trip.destination}</p>
         <div className="mt-6 flex flex-wrap gap-6 text-sm font-semibold text-blue-100/70">
           <span className="flex items-center gap-2"><CalendarDays size={16} />{dateText(trip.start_date)} - {dateText(trip.end_date)}</span>
@@ -317,8 +346,8 @@ export function TripOverview() {
     </div>
     <p className="mt-3 text-sm text-slate-400">Số dư quỹ = quỹ đã thu - chi từ quỹ. Khoản thành viên trả hộ vẫn nằm trong tổng chi chuyến đi nhưng không trừ quỹ.</p>
 
-    {/* Map */}
-    <div className="mt-8">
+    {/* Map — isolated stacking context so Leaflet z-indices don't bleed above the modal */}
+    <div className="mt-8" style={{ isolation: 'isolate' }}>
       <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-ink">
         <MapPin size={20} className="text-travel" />Bản đồ hành trình
       </h2>
@@ -366,6 +395,15 @@ export function TripOverview() {
         </div>
       </div>
     </div>
+    {showShare && (
+      <ShareTripModal
+        tripId={tripId}
+        currentVisibility={currentVisibility}
+        tripData={trip}
+        onClose={() => setShowShare(false)}
+        onSaved={(v) => setVisibility(v)}
+      />
+    )}
   </>;
 }
 

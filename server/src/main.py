@@ -23,6 +23,7 @@ from src.routers.ai import router as ai_router
 from src.routers.chat import router as chat_router
 from src.routers.payments import router as payments_router
 from src.routers.mock_ota import router as mock_ota_router
+from src.routers.shared_trips import router as shared_trips_router
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -89,6 +90,7 @@ app.include_router(ai_router, prefix="/api")
 app.include_router(chat_router, prefix="/api")
 app.include_router(payments_router, prefix="/api")
 app.include_router(mock_ota_router, prefix="/api")
+app.include_router(shared_trips_router, prefix="/api")
 
 # Mount Socket.IO App
 socket_app = socketio.ASGIApp(sio, other_asgi_app=app)
