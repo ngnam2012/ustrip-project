@@ -1,111 +1,834 @@
 {
   "info": {
     "name": "UsTrip API",
+    "description": "Comprehensive Postman collection for UsTrip API.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    { "key": "baseUrl", "value": "http://localhost:5000/api" },
-    { "key": "token", "value": "" },
-    { "key": "tripId", "value": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa" },
-    { "key": "expenseId", "value": "dddddddd-dddd-dddd-dddd-dddddddddddd" },
-    { "key": "paymentId", "value": "" }
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000/api"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "tripId",
+      "value": "09f28d8f-da7a-430a-96ab-40c0518a849f"
+    },
+    {
+      "key": "userId",
+      "value": "0ae1f79a-8ceb-4306-967b-b0e4df94518b"
+    },
+    {
+      "key": "activityId",
+      "value": "00e61b38-7ffb-44f7-bfbf-e2264ec2c228"
+    },
+    {
+      "key": "expenseId",
+      "value": "00df437b-99ed-489a-b7b0-3e8ba9c7e102"
+    },
+    {
+      "key": "contributionId",
+      "value": "31ba8554-2e40-489a-8495-f2ab4e55d2ff"
+    },
+    {
+      "key": "splitId",
+      "value": "07eb7536-3143-466a-9ea1-8b486c58f925"
+    },
+    {
+      "key": "notificationId",
+      "value": "05e77f26-dae9-4979-85aa-f12f6823eead"
+    },
+    {
+      "key": "paymentId",
+      "value": "hhhhhhhh-hhhh-hhhh-hhhh-hhhhhhhhhhhh"
+    }
   ],
-  "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
   "item": [
     {
       "name": "Auth",
       "item": [
         {
-          "name": "Login",
+          "name": "Register",
           "request": {
-            "auth": { "type": "noauth" },
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\"email\":\"an@ustrip.vn\",\"password\":\"Password123!\"}" },
-            "url": "{{baseUrl}}/auth/login"
-          },
-          "event": [{ "listen": "test", "script": { "exec": ["pm.collectionVariables.set('token', pm.response.json().token);"] } }]
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"nam20122005_ne12222133w@gmail.com\",\n  \"password\": \"nam20122005\",\n  \"full_name\": \"Nam Nguyen\"\n}"
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
         },
         {
-          "name": "Current User",
-          "request": { "method": "GET", "url": "{{baseUrl}}/auth/me" }
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"nam20122005@gmail.com\",\n  \"password\": \"nam20122005\"\n}"
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.collectionVariables.set('token', pm.response.json().token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Me",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/auth/me"
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/profile",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"string\",\n  \"avatar_url\": \"string\",\n  \"phone\": \"string\"\n}"
+            }
+          }
         }
       ]
     },
     {
       "name": "Trips",
       "item": [
-        { "name": "List Trips", "request": { "method": "GET", "url": "{{baseUrl}}/trips" } },
-        { "name": "Trip Dashboard", "request": { "method": "GET", "url": "{{baseUrl}}/trips/{{tripId}}/dashboard" } },
-        { "name": "Financial Summary", "request": { "method": "GET", "url": "{{baseUrl}}/trips/{{tripId}}/financial-summary" } },
-        { "name": "Members", "request": { "method": "GET", "url": "{{baseUrl}}/trips/{{tripId}}/members" } },
-        { "name": "Activities", "request": { "method": "GET", "url": "{{baseUrl}}/trips/{{tripId}}/activities" } },
-        { "name": "Fund", "request": { "method": "GET", "url": "{{baseUrl}}/trips/{{tripId}}/fund" } },
-        { "name": "Expenses", "request": { "method": "GET", "url": "{{baseUrl}}/trips/{{tripId}}/expenses" } },
-        { "name": "Settlements", "request": { "method": "GET", "url": "{{baseUrl}}/trips/{{tripId}}/settlements" } }
-      ]
-    },
-    {
-      "name": "Expense Split",
-      "item": [
         {
-          "name": "Generate Equal Split",
+          "name": "List Trips",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/trips"
+          }
+        },
+        {
+          "name": "Create Trip",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{}" },
-            "url": "{{baseUrl}}/expenses/{{expenseId}}/split"
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/trips",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"string\",\n  \"destination\": \"string\",\n  \"start_date\": \"2024-01-01T00:00:00Z\",\n  \"end_date\": \"2024-01-01T00:00:00Z\",\n  \"estimated_budget\": 0.0,\n  \"description\": \"string\",\n  \"cover_image_url\": \"string\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Trip",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/trips/{{tripId}}"
+          }
+        },
+        {
+          "name": "Update Trip",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/trips/{{tripId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"string\",\n  \"destination\": \"string\",\n  \"start_date\": \"2024-01-01T00:00:00Z\",\n  \"end_date\": \"2024-01-01T00:00:00Z\",\n  \"estimated_budget\": 0.0,\n  \"description\": \"string\",\n  \"cover_image_url\": \"string\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Trip",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/trips/{{tripId}}"
+          }
+        },
+        {
+          "name": "List Members",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/trips/{{tripId}}/members"
+          }
+        },
+        {
+          "name": "Add Member",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/trips/{{tripId}}/members",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"string\",\n  \"role\": \"string\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Member",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/trips/{{tripId}}/members/{{userId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"string\",\n  \"contribution_status\": \"string\",\n  \"paid_amount\": 0.0,\n  \"remaining_amount\": 0.0\n}"
+            }
+          }
+        },
+        {
+          "name": "Remove Member",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/trips/{{tripId}}/members/{{userId}}"
+          }
+        },
+        {
+          "name": "Create Reminder",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/trips/{{tripId}}/reminders",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"recipient_id\": \"string\",\n  \"message\": \"string\"\n}"
+            }
+          }
+        },
+        {
+          "name": "List Reminders",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/trips/{{tripId}}/reminders"
           }
         }
       ]
     },
     {
-      "name": "MoMo Payments",
+      "name": "Activities",
       "item": [
         {
-          "name": "Create MoMo Contribution",
+          "name": "List Activities",
           "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\"amount\":100000}" },
-            "url": "{{baseUrl}}/trips/{{tripId}}/contributions/momo/create"
-          },
-          "event": [{ "listen": "test", "script": { "exec": ["pm.collectionVariables.set('paymentId', pm.response.json().id);"] } }]
-        },
-        {
-          "name": "Payment Status",
-          "request": { "method": "GET", "url": "{{baseUrl}}/payments/{{paymentId}}/status" }
-        },
-        {
-          "name": "Query MoMo",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\"payment_id\":\"{{paymentId}}\"}" },
-            "url": "{{baseUrl}}/payments/momo/query"
-          }
-        },
-        {
-          "name": "Open Mock Payment Page",
-          "request": {
-            "auth": { "type": "noauth" },
             "method": "GET",
-            "url": "{{baseUrl}}/payments/{{paymentId}}/mock"
+            "header": [],
+            "url": "{{baseUrl}}/trips/{{tripId}}/activities"
           }
         },
         {
-          "name": "Complete Mock Payment",
+          "name": "Create Activity",
           "request": {
-            "auth": { "type": "noauth" },
             "method": "POST",
-            "url": "{{baseUrl}}/payments/{{paymentId}}/mock-success"
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/trips/{{tripId}}/activities",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"string\",\n  \"activity_date\": \"2024-01-01\",\n  \"start_time\": \"string\",\n  \"end_time\": \"string\",\n  \"location\": \"string\",\n  \"location_name\": \"string\",\n  \"address\": \"string\",\n  \"latitude\": 0.0,\n  \"longitude\": 0.0,\n  \"place_id\": \"string\",\n  \"map_provider\": \"string\",\n  \"estimated_cost\": 0.0,\n  \"notes\": \"string\",\n  \"participants\": [\n    \"string\"\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Activity",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/activities/{{activityId}}"
+          }
+        },
+        {
+          "name": "Update Activity",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/activities/{{activityId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"string\",\n  \"activity_date\": \"2024-01-01\",\n  \"start_time\": \"string\",\n  \"end_time\": \"string\",\n  \"location\": \"string\",\n  \"location_name\": \"string\",\n  \"address\": \"string\",\n  \"latitude\": 0.0,\n  \"longitude\": 0.0,\n  \"place_id\": \"string\",\n  \"map_provider\": \"string\",\n  \"estimated_cost\": 0.0,\n  \"notes\": \"string\",\n  \"participants\": [\n    \"string\"\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Activity",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/activities/{{activityId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Funds",
+      "item": [
+        {
+          "name": "Get Fund",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/trips/{{tripId}}/fund"
+          }
+        },
+        {
+          "name": "Update Fund",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/trips/{{tripId}}/fund",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"target_amount\": 0.0\n}"
+            }
+          }
+        },
+        {
+          "name": "List Contributions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/trips/{{tripId}}/contributions"
+          }
+        },
+        {
+          "name": "Add Contribution",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/trips/{{tripId}}/contributions",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": \"string\",\n  \"amount\": 0.0,\n  \"payment_proof_url\": \"string\",\n  \"note\": \"string\",\n  \"contributed_at\": \"2024-01-01T00:00:00Z\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Contribution",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/contributions/{{contributionId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 0.0,\n  \"payment_proof_url\": \"string\",\n  \"note\": \"string\",\n  \"contributed_at\": \"2024-01-01T00:00:00Z\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Expenses",
+      "item": [
+        {
+          "name": "List Expenses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/trips/{{tripId}}/expenses"
+          }
+        },
+        {
+          "name": "Create Expense",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/trips/{{tripId}}/expenses",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"string\",\n  \"amount\": 0.0,\n  \"category\": \"string\",\n  \"payment_source\": \"string\",\n  \"paid_by\": \"string\",\n  \"related_activity_id\": \"string\",\n  \"split_method\": \"string\",\n  \"bill_image_url\": \"string\",\n  \"note\": \"string\",\n  \"expense_date\": \"2024-01-01\",\n  \"participants\": [\n    \"string\"\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Expense",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/expenses/{{expenseId}}"
+          }
+        },
+        {
+          "name": "Update Expense",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/expenses/{{expenseId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"string\",\n  \"amount\": 0.0,\n  \"category\": \"string\",\n  \"payment_source\": \"string\",\n  \"paid_by\": \"string\",\n  \"related_activity_id\": \"string\",\n  \"split_method\": \"string\",\n  \"bill_image_url\": \"string\",\n  \"note\": \"string\",\n  \"expense_date\": \"2024-01-01\",\n  \"participants\": [\n    \"string\"\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Expense",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/expenses/{{expenseId}}"
+          }
+        },
+        {
+          "name": "Split Expense",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/expenses/{{expenseId}}/split",
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            }
+          }
+        },
+        {
+          "name": "Get Settlements",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/trips/{{tripId}}/settlements"
+          }
+        },
+        {
+          "name": "Settle Split",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/splits/{{splitId}}/settled",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"is_settled\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Optimized Settlements",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/trips/{{tripId}}/optimized-settlements"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "Financial Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/trips/{{tripId}}/financial-summary"
+          }
+        },
+        {
+          "name": "Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/trips/{{tripId}}/dashboard"
           }
         }
       ]
     },
     {
       "name": "Notifications",
-      "item": [{ "name": "List Notifications", "request": { "method": "GET", "url": "{{baseUrl}}/notifications" } }]
+      "item": [
+        {
+          "name": "Get Notifications",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/notifications"
+          }
+        },
+        {
+          "name": "Read Notification",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/notifications/{{notificationId}}/read",
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            }
+          }
+        },
+        {
+          "name": "Register Push Token",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/notifications/push-token",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"string\",\n  \"platform\": \"string\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Remove Push Token",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/notifications/push-token"
+          }
+        }
+      ]
+    },
+    {
+      "name": "AI & Chat",
+      "item": [
+        {
+          "name": "Suggest Itinerary",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/trips/{{tripId}}/ai/itinerary",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"destination\": \"string\",\n  \"days\": 0,\n  \"budget\": \"string\",\n  \"style\": \"string\",\n  \"group\": 0\n}"
+            }
+          }
+        },
+        {
+          "name": "Suggest Places",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/trips/{{tripId}}/ai/places",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"destination\": \"string\",\n  \"category\": \"string\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Messages",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/trips/{{tripId}}/messages"
+          }
+        },
+        {
+          "name": "Send Message",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/trips/{{tripId}}/messages",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"string\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Misc",
+      "item": [
+        {
+          "name": "Upload Image",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/upload/{{kind}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            }
+          }
+        },
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "http://localhost:5000/health"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payments (MoMo)",
+      "item": [
+        {
+          "name": "Create",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/trips/{{tripId}}/contributions/momo/create",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 100000\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.collectionVariables.set('paymentId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ipn",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/payments/momo/ipn",
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            }
+          }
+        },
+        {
+          "name": "Return Result",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/payments/momo/return"
+          }
+        },
+        {
+          "name": "Payment Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/payments/{{paymentId}}/status"
+          }
+        },
+        {
+          "name": "Query",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/payments/momo/query",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"payment_id\": \"string\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Mock Page",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/payments/{{paymentId}}/mock"
+          }
+        },
+        {
+          "name": "Mock Success",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/payments/{{paymentId}}/mock-success",
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Mock OTA",
+      "item": [
+        {
+          "name": "Get Mock Services",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/trips/{{tripId}}/mock-ota/services"
+          }
+        },
+        {
+          "name": "Book Mock Service",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/trips/{{tripId}}/mock-ota/book",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"service_id\": \"string\",\n  \"quantity\": 0\n}"
+            }
+          }
+        }
+      ]
     }
   ]
 }
