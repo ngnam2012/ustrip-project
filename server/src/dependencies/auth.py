@@ -40,11 +40,14 @@ async def get_trip_member(request: Request, user: Dict[str, Any] = Depends(get_c
     if not trip_id:
         raise ApiError(400, 'tripId is required')
         
-    res = db.table('trip_members').select('role').eq('trip_id', trip_id).eq('user_id', user['id']).execute()
+    res = db.table('trip_members').select('role,invitation_status').eq('trip_id', trip_id).eq('user_id', user['id']).execute()
     data = res.data[0] if res.data else None
     
     if not data:
         raise ApiError(403, 'You are not a member of this trip')
+
+    if data.get('invitation_status') == 'pending':
+        raise ApiError(403, 'You must accept the trip invitation before accessing this resource')
         
     # Store tripRole in request state for later use
     request.state.trip_role = data['role']
@@ -55,6 +58,23 @@ async def get_trip_member(request: Request, user: Dict[str, Any] = Depends(get_c
 async def get_trip_owner(request: Request, user: Dict[str, Any] = Depends(get_trip_member)) -> Dict[str, Any]:
     if getattr(request.state, 'trip_role', None) != 'owner':
         raise ApiError(403, 'Only the trip owner can perform this action')
+    return user
+
+async def get_pending_or_accepted_member(request: Request, user: Dict[str, Any] = Depends(get_current_user)) -> Dict[str, Any]:
+    """Allows both pending-invited and accepted members. Used for the invitation respond endpoint."""
+    trip_id = request.path_params.get('tripId')
+    if not trip_id:
+        raise ApiError(400, 'tripId is required')
+
+    res = db.table('trip_members').select('role,invitation_status').eq('trip_id', trip_id).eq('user_id', user['id']).execute()
+    data = res.data[0] if res.data else None
+
+    if not data:
+        raise ApiError(403, 'No invitation found for this trip')
+
+    request.state.trip_role = data['role']
+    request.state.trip_id = trip_id
+    request.state.invitation_status = data['invitation_status']
     return user
 
 def _resource_member_dependency(table: str, param: str, relation: str = 'trip_id') -> Callable:

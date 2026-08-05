@@ -174,14 +174,15 @@ function ItineraryDay({ date, items, tripId, onEdit, onDelete }) {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="relative space-y-3 overflow-hidden border-l-2 border-dashed border-blue-200/60 pl-6"
+            className="relative space-y-3 overflow-hidden pl-8"
           >
+            <div className="absolute bottom-0 left-4 top-0 border-l-2 border-dashed border-blue-200/60" />
             {items.map((item) => (
               <div
                 key={`${item.original_id || item.id}-${item.activity_date}`}
                 className="card relative block border-l-4 border-l-travel/80 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lift hover:border-l-travel"
               >
-                <span className="absolute -left-[32px] top-6 h-3 w-3 rounded-full bg-travel ring-4 ring-blue-50 shadow-sm" />
+                <span className="absolute -left-[25px] top-6 h-3 w-3 rounded-full bg-travel ring-4 ring-blue-50 shadow-sm" />
                 <div className="flex flex-wrap justify-between gap-3">
                   <div>
                     <Link
@@ -316,7 +317,7 @@ function ActivityForm({ tripId, members = [], activity, onClose, onSaved }) {
   };
 
   return (
-    <Modal title="Thêm hoạt động" onClose={onClose}>
+    <Modal title={initialData ? "Chỉnh sửa hoạt động" : "Thêm hoạt động"} onClose={onClose}>
       <form onSubmit={submit}>
         <ErrorBox message={errorMessage} />
         <div className="grid gap-4 sm:grid-cols-2">

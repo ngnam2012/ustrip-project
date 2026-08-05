@@ -87,12 +87,11 @@ export function AiPage() {
           <div>
             <label>Điểm đến</label>
             <input
-              required
-              value={formData.destination}
-              onChange={(event) =>
-                setFormData({ ...formData, destination: event.target.value })
-              }
+              disabled
+              value="Đà Lạt"
+              className="bg-slate-50"
             />
+            <p className="mt-1 text-xs text-slate-400">MVP: Hiện chỉ hỗ trợ Đà Lạt</p>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>

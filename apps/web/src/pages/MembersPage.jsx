@@ -66,7 +66,13 @@ export function MembersPage() {
                   </div>
                 </td>
                 <td>
-                  <StatusBadge status={member.role} />
+                  {member.invitation_status === "pending" ? (
+                    <span className="inline-block rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-700">
+                      Chờ xác nhận
+                    </span>
+                  ) : (
+                    <StatusBadge status={member.role} />
+                  )}
                 </td>
                 <td>
                   <StatusBadge status={member.contribution_status} />

@@ -1,6 +1,8 @@
-import { Trash2, Users } from "lucide-react";
+import { Trash2, Users, Pencil } from "lucide-react";
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ErrorBox, Loader, StatusBadge } from "../components/ui";
+import { ExpenseForm } from "../components/ExpenseForm";
 import { useRemote } from "../hooks/useRemote";
 import { api, currency, dateText } from "../lib/api";
 import { Head, sourceLabels } from "./shared";
@@ -9,7 +11,10 @@ export function ExpenseDetailPage() {
   const { tripId, expenseId } = useParams();
   const navigate = useNavigate();
   const { data, loading, error, reload } = useRemote(`/expenses/${expenseId}`);
-  if (loading) return <Loader />;
+  const members = useRemote(`/trips/${tripId}/members`);
+  const [showEditForm, setShowEditForm] = useState(false);
+  
+  if (loading || members.loading) return <Loader />;
   const personal = data.payment_source === "personal";
   return (
     <>
@@ -18,6 +23,13 @@ export function ExpenseDetailPage() {
         title={data?.title}
         action={
           <div className="flex gap-2">
+            <button
+              className="btn-coral text-slate-700 bg-slate-100 hover:bg-slate-200 border-none"
+              onClick={() => setShowEditForm(true)}
+            >
+              <Pencil size={17} />
+              Chỉnh sửa
+            </button>
             {personal && (
               <button
                 className="btn-primary"
@@ -72,21 +84,19 @@ export function ExpenseDetailPage() {
               {currency(data.amount)}
             </p>
           </div>
-          {personal && (
-            <div className="mt-5">
-              <p className="text-sm font-bold">Đã thanh toán cho:</p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {data.participants?.map((participant) => (
-                  <span
-                    className="badge bg-blue-50 text-travel"
-                    key={participant.user_id}
-                  >
-                    {participant.profile.full_name}
-                  </span>
-                ))}
-              </div>
+          <div className="mt-5">
+            <p className="text-sm font-bold">{personal ? "Đã thanh toán cho:" : "Sử dụng bởi:"}</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {data.participants?.map((participant) => (
+                <span
+                  className="badge bg-blue-50 text-travel"
+                  key={participant.user_id}
+                >
+                  {participant.profile.full_name}
+                </span>
+              ))}
             </div>
-          )}
+          </div>
           {data.note && (
             <p className="mt-5 rounded-xl bg-slate-50 p-4">{data.note}</p>
           )}
@@ -100,36 +110,59 @@ export function ExpenseDetailPage() {
         </section>
         <section className="card">
           <h2 className="mb-4 font-bold">
-            {personal ? "Hoàn tiền cho người trả hộ" : "Tác động đến quỹ"}
+            {personal ? "Hoàn tiền cho người trả hộ" : "Mức tiêu thụ từ quỹ chung"}
           </h2>
-          {personal ? (
-            data.splits?.length ? (
-              data.splits.map((split) => (
-                <div
-                  className="mb-3 flex justify-between border-b border-slate-100 pb-3"
-                  key={split.id}
-                >
-                  <div>
-                    <p className="font-semibold">{split.profile.full_name}</p>
-                    <StatusBadge status={split.is_settled ? "paid" : "unpaid"} />
-                  </div>
-                  <b>{currency(split.amount_owed)}</b>
+          {data.splits?.length ? (
+            data.splits.map((split) => (
+              <div
+                className="mb-3 flex justify-between border-b border-slate-100 pb-3"
+                key={split.id}
+              >
+                <div>
+                  <p className="font-semibold">{split.profile.full_name}</p>
+                  {personal && <StatusBadge status={split.is_settled ? "paid" : "unpaid"} />}
                 </div>
-              ))
-            ) : (
-              <p className="text-sm text-slate-500">
-                Bấm "Chia đều cho người đã chọn" để chia đúng danh sách người
-                được trả hộ.
-              </p>
-            )
+                <b>{currency(split.amount_owed)}</b>
+              </div>
+            ))
           ) : (
             <p className="text-sm text-slate-500">
-              Khoản này đã trừ trực tiếp số dư quỹ chung và không tạo công nợ
-              giữa các thành viên.
+              {personal 
+                ? "Bấm 'Chia đều cho người đã chọn' để chia đúng danh sách người được trả hộ."
+                : "Khoản này không ghi nhận chi tiết mức tiêu thụ của từng người."
+              }
             </p>
           )}
         </section>
       </div>
+      {showEditForm && (
+        <ExpenseForm
+          tripId={tripId}
+          expenseId={expenseId}
+          members={members.data || []}
+          initialData={{
+            title: data.title,
+            amount: data.amount,
+            category: data.category,
+            payment_source: data.payment_source,
+            paid_by: data.paid_by || "",
+            expense_date: data.expense_date?.slice(0, 10),
+            participants: data.participants?.map(p => p.user_id) || [],
+            split_method: data.split_method || 'equal',
+            exact_splits: data.split_method === 'exact' ? (data.splits || []).reduce((acc, split) => {
+              acc[split.user_id] = split.amount_owed;
+              return acc;
+            }, {}) : {},
+            bill_image_url: data.bill_image_url || "",
+            note: data.note || "",
+          }}
+          onClose={() => setShowEditForm(false)}
+          onSaved={() => {
+            setShowEditForm(false);
+            reload();
+          }}
+        />
+      )}
     </>
   );
 }

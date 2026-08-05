@@ -1,4 +1,8 @@
-import { Bell, Bot, CalendarDays, ChartPie, CircleDollarSign, Compass, LogOut, Menu, Settings, Users, WalletCards, X, MapPin, MessageSquare, ShoppingBag } from 'lucide-react';
+<<<<<<< HEAD
+import { Bell, Bot, CalendarDays, ChartPie, CircleDollarSign, Compass, LogOut, Menu, Settings, Users, WalletCards, X, MapPin, MessageSquare, ShoppingBag, Mail } from 'lucide-react';
+=======
+import { Bell, Bot, CalendarDays, ChartPie, CircleDollarSign, Compass, LogOut, Menu, Settings, Users, WalletCards, X, MapPin, MessageSquare, ShoppingBag, FileText } from 'lucide-react';
+>>>>>>> 215e139ed5ef41b08d041155dbef3e6b2f3b02f5
 import { useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -9,16 +13,33 @@ import { useRemote } from '../hooks/useRemote';
 const tripItems = [
   ['Tổng quan', '', Compass], ['Lịch trình', 'itinerary', CalendarDays], ['Thành viên', 'members', Users],
   ['Quỹ chung', 'fund', WalletCards], ['Chi tiêu', 'expenses', CircleDollarSign], ['Chia tiền', 'settlements', ChartPie],
-  ['Thống kê', 'finance', ChartPie], ['Nhắc thanh toán', 'reminders', Bell], ['Gợi ý AI', 'ai', Bot],
-  ['Gợi ý địa điểm', 'ai-places', MapPin], ['Dịch vụ OTA', 'ota', ShoppingBag], ['Trò chuyện', 'chat', MessageSquare]
+  ['Thống kê', 'finance', ChartPie], ['Nhắc thanh toán', 'reminders', Bell], 
+  ['Gợi ý AI', 'ai', Bot], ['Gợi ý địa điểm', 'ai-places', MapPin], ['Dịch vụ OTA', 'ota', ShoppingBag], 
+  ['Trò chuyện', 'chat', MessageSquare]
 ];
 
-function SidebarLink({ to, icon: Icon, label, end }) {
-  return <NavLink to={to} end={end} className={({ isActive }) => `group relative flex items-center gap-3 rounded-xl px-4 py-2.5 text-[13px] font-semibold transition-all duration-200 ${isActive ? 'bg-gradient-to-r from-blue-50 to-blue-50/50 text-travel shadow-sm' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'}`}>
+<<<<<<< HEAD
+function SidebarLink({ to, icon: Icon, label, end, badge }) {
+  return <NavLink to={to} end={end} className={({ isActive }) => `group relative flex items-center justify-between rounded-xl px-4 py-2.5 text-[13px] font-semibold transition-all duration-200 ${isActive ? 'bg-gradient-to-r from-blue-50 to-blue-50/50 text-travel shadow-sm' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'}`}>
     {({ isActive }) => <>
-      {isActive && <motion.div layoutId="sidebar-active" className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1 rounded-r-full bg-travel" transition={{ type: 'spring', stiffness: 350, damping: 30 }} />}
+      <div className="flex items-center gap-3">
+        {isActive && <motion.div layoutId="sidebar-active" className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1 rounded-r-full bg-travel" transition={{ type: 'spring', stiffness: 350, damping: 30 }} />}
+        <Icon size={18} className={`transition-colors ${isActive ? 'text-travel' : 'text-slate-400 group-hover:text-slate-600'}`} />
+        <span>{label}</span>
+      </div>
+      {badge > 0 && (
+        <span className="rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm animate-pulse">
+          {badge}
+        </span>
+      )}
+=======
+function SidebarLink({ to, icon: Icon, label, end }) {
+  return <NavLink to={to} end={end} className={({ isActive }) => `group relative flex items-center gap-3 rounded-xl overflow-hidden px-4 py-2.5 text-[13px] font-semibold transition-all duration-200 ${isActive ? 'bg-gradient-to-r from-blue-50 to-blue-50/50 text-travel shadow-sm' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'}`}>
+    {({ isActive }) => <>
+      {isActive && <motion.div layoutId="sidebar-active" className="absolute left-0 top-0 bottom-0 my-auto h-6 w-1 rounded-r-full bg-travel" transition={{ type: 'spring', stiffness: 350, damping: 30 }} />}
       <Icon size={18} className={`transition-colors ${isActive ? 'text-travel' : 'text-slate-400 group-hover:text-slate-600'}`} />
       {label}
+>>>>>>> 215e139ed5ef41b08d041155dbef3e6b2f3b02f5
     </>}
   </NavLink>;
 }
@@ -29,6 +50,10 @@ export default function Layout() {
   const [open, setOpen] = useState(false);
   const location = useLocation();
   const base = tripId ? `/trips/${tripId}/` : '/';
+
+  // Fetch trips overview to display pending invitations count
+  const { data: userTripsData } = useRemote('/trips');
+  const pendingCount = Array.isArray(userTripsData) ? 0 : (userTripsData?.pending_invitations?.length || 0);
 
   // Load trip name when inside a trip
   const { data: tripData } = useRemote(tripId ? `/trips/${tripId}/dashboard` : null);
@@ -46,6 +71,8 @@ export default function Layout() {
 
       <nav className="flex-1 overflow-y-auto px-5 space-y-0.5 pb-4">
         <SidebarLink to="/app" icon={Compass} label="Chuyến đi của tôi" end />
+        <SidebarLink to="/invitations" icon={Mail} label="Lời mời chuyến đi" end badge={pendingCount} />
+
         
         {tripId && <>
           {/* Trip name badge */}

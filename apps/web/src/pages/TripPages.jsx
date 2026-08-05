@@ -36,7 +36,27 @@ const getCoverUrl = (trip, index) => {
 export function TripsPage() {
   const { data, loading, error, reload } = useRemote('/trips');
   const [show, setShow] = useState(false);
-  
+  const [respondingId, setRespondingId] = useState(null);
+
+  const trips = Array.isArray(data) ? data : (data?.trips || []);
+  const pendingInvitations = Array.isArray(data) ? [] : (data?.pending_invitations || []);
+
+  const respondInvitation = async (tripId, action) => {
+    if (respondingId) return;
+    setRespondingId(tripId + action);
+    try {
+      await api(`/trips/${tripId}/members/respond`, {
+        method: 'POST',
+        body: { action }
+      });
+      reload();
+    } catch (e) {
+      alert(e.message);
+    } finally {
+      setRespondingId(null);
+    }
+  };
+
   if (loading) return <Loader/>;
   return <>
     <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
@@ -49,7 +69,47 @@ export function TripsPage() {
       </button>
     </div>
     <ErrorBox message={error}/>
-    {!data?.length ? (
+
+    {/* Pending Invitations Section */}
+    {pendingInvitations.length > 0 && (
+      <div className="mb-8">
+        <h2 className="text-sm font-bold uppercase tracking-wider text-amber-600 mb-3 flex items-center gap-2">
+          <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+          Lời mời đang chờ ({pendingInvitations.length})
+        </h2>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {pendingInvitations.map((trip) => (
+            <div key={trip.id} className="rounded-2xl border-2 border-dashed border-amber-300 bg-amber-50/40 p-5 backdrop-blur-sm">
+              <h3 className="text-lg font-bold text-ink">{trip.name}</h3>
+              <p className="mt-1 flex items-center gap-1.5 text-sm text-slate-600">
+                <MapPin size={14} />{trip.destination}
+              </p>
+              <p className="mt-2 text-xs font-semibold text-slate-500 flex items-center gap-1">
+                <CalendarDays size={12} />{dateText(trip.start_date)} → {dateText(trip.end_date)}
+              </p>
+              <div className="mt-4 flex gap-2">
+                <button
+                  disabled={!!respondingId}
+                  onClick={() => respondInvitation(trip.id, 'accept')}
+                  className="flex-1 rounded-xl bg-blue-600 py-2 text-sm font-bold text-white transition hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {respondingId === trip.id + 'accept' ? '...' : '✓ Chấp nhận'}
+                </button>
+                <button
+                  disabled={!!respondingId}
+                  onClick={() => respondInvitation(trip.id, 'decline')}
+                  className="flex-1 rounded-xl border border-red-300 py-2 text-sm font-bold text-red-600 transition hover:bg-red-50 disabled:opacity-50"
+                >
+                  {respondingId === trip.id + 'decline' ? '...' : '✕ Từ chối'}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+
+    {!trips.length && !pendingInvitations.length ? (
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="card py-20 text-center">
         <motion.div
           animate={{ y: [0, -6, 0] }}
@@ -64,7 +124,7 @@ export function TripsPage() {
       </motion.div>
     ) : (
       <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-        {data?.map((trip, i) =>
+        {trips.map((trip, i) =>
           <motion.div key={trip.id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
             <Link to={`/trips/${trip.id}`} className="group block overflow-hidden rounded-2xl bg-white border border-slate-100/80 shadow-card transition-all duration-300 hover:-translate-y-1.5 hover:shadow-card-hover hover:border-blue-100/60">
               <div className="relative h-44 bg-gradient-to-br from-blue-500 via-blue-400 to-violet-400 bg-cover bg-center overflow-hidden" style={{backgroundImage:`linear-gradient(0deg,rgba(0,0,0,.25),rgba(0,0,0,.02)),url(${getCoverUrl(trip, i)})`}}>
@@ -117,7 +177,7 @@ function TripForm({ onClose, onSaved }) {
   const navigate = useNavigate();
   const [form, setForm] = useState({
     name: '',
-    destination: '',
+    destination: 'Đà Lạt',
     start_date: '',
     end_date: '',
     estimated_budget: '',
@@ -130,6 +190,12 @@ function TripForm({ onClose, onSaved }) {
     if (!form.estimated_budget) {
       setError('Vui lòng nhập ngân sách dự kiến (nhập 0 nếu chưa có).');
       return;
+    }
+    if (form.start_date && form.end_date) {
+      if (new Date(form.start_date) > new Date(form.end_date)) {
+        setError('Ngày bắt đầu không được sau ngày kết thúc.');
+        return;
+      }
     }
     try {
       const trip = await api('/trips', { method: 'POST', body: form });
@@ -155,11 +221,11 @@ function TripForm({ onClose, onSaved }) {
         <div className="sm:col-span-2">
           <label>Điểm đến</label>
           <input
-            required
-            placeholder="VD: Đà Lạt, Lâm Đồng"
-            value={form.destination}
-            onChange={e => setForm({ ...form, destination: e.target.value })}
+            disabled
+            value="Đà Lạt"
+            className="bg-slate-50"
           />
+          <p className="mt-1 text-xs text-slate-400">MVP: Hiện chỉ hỗ trợ Đà Lạt</p>
         </div>
         <div>
           <label>Ngày bắt đầu</label>
