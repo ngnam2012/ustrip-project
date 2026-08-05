@@ -10,6 +10,7 @@ import { Head } from "./shared";
 export function SettlementsPage() {
   const { tripId } = useParams();
   const [tab, setTab] = useState("detailed");
+  const reports = useRemote(`/trips/${tripId}/member-reports`);
   const detailed = useRemote(`/trips/${tripId}/settlements`);
   const optimized = useRemote(`/trips/${tripId}/optimized-settlements`);
 
@@ -34,6 +35,7 @@ export function SettlementsPage() {
         },
       });
       toast.success("Đã ghi nhận thanh toán");
+      reports.reload();
       detailed.reload();
       optimized.reload();
     } catch (err) {
@@ -44,26 +46,86 @@ export function SettlementsPage() {
   if (detailed.loading || optimized.loading) return <Loader />;
   return (
     <>
-      <Head eyebrow="Công nợ cá nhân" title="Hoàn tiền cho thành viên trả hộ" />
+      <Head eyebrow="Tài chính" title="Tổng kết & Chia tiền" />
+      
+      {/* SUMMARY BOARD */}
+      <div className="mb-8">
+        <h3 className="mb-4 text-lg font-bold text-slate-800">Tổng kết cá nhân (Bao gồm Quỹ chung & Trả hộ)</h3>
+        <ErrorBox message={reports.error} />
+        {reports.loading ? <Loader /> : (
+          <div className="space-y-4">
+            {reports.data?.map((rep) => (
+              <div key={rep.user_id} className="card bg-white border border-slate-200 p-0 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                {/* Header */}
+                <div className="bg-slate-50 border-b border-slate-100 p-4 flex items-center gap-3">
+                  <img src={rep.profile?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(rep.profile?.full_name || 'User')}&background=random`} alt="" className="w-10 h-10 rounded-full object-cover shadow-sm" />
+                  <span className="font-bold text-ink">{rep.profile?.full_name}</span>
+                </div>
+                
+                {/* Split layout */}
+                <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-100">
+                  {/* QUỸ CHUNG */}
+                  <div className="p-4 flex flex-col gap-2">
+                    <h4 className="font-bold text-sm text-blue-700 mb-1">Quỹ chung</h4>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-500">Đã góp:</span>
+                      <span className="font-bold">{currency(rep.fund_contributed)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-500">Đã dùng:</span>
+                      <span className="font-bold">{currency(rep.fund_consumed)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm pt-2 mt-1 border-t border-slate-100">
+                      <span className="text-slate-500 font-medium">Dư / Thiếu:</span>
+                      <span className={`font-extrabold ${rep.fund_balance > 0.01 ? 'text-emerald-600' : rep.fund_balance < -0.01 ? 'text-coral' : 'text-slate-400'}`}>
+                        {rep.fund_balance > 0.01 ? `+ ${currency(rep.fund_balance)} (Thừa)` : rep.fund_balance < -0.01 ? `- ${currency(-rep.fund_balance)} (Thiếu)` : 'Khớp'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* TRẢ HỘ */}
+                  <div className="p-4 flex flex-col gap-2">
+                    <h4 className="font-bold text-sm text-amber-700 mb-1">Trả hộ (Công nợ)</h4>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-500">Đã trả hộ:</span>
+                      <span className="font-bold">{currency(rep.personal_paid)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-500">Đã dùng:</span>
+                      <span className="font-bold">{currency(rep.personal_consumed)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm pt-2 mt-1 border-t border-slate-100">
+                      <span className="text-slate-500 font-medium">Dư / Thiếu:</span>
+                      <span className={`font-extrabold ${rep.personal_balance > 0.01 ? 'text-emerald-600' : rep.personal_balance < -0.01 ? 'text-coral' : 'text-slate-400'}`}>
+                        {rep.personal_balance > 0.01 ? `+ ${currency(rep.personal_balance)} (Thu lại)` : rep.personal_balance < -0.01 ? `- ${currency(-rep.personal_balance)} (Cần trả)` : 'Khớp'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
       <div className="mb-5 flex gap-2 border-b border-slate-200 pb-2">
         <button
-          className={`px-4 py-2 font-bold ${tab === "detailed" ? "text-travel border-b-2 border-travel" : "text-slate-500"}`}
+          className={`px-4 py-2 font-bold ${tab === "detailed" ? "text-travel border-b-2 border-travel" : "text-slate-500 hover:text-slate-700"}`}
           onClick={() => setTab("detailed")}
         >
-          Chi tiết từng khoản
+          Sao kê nợ
         </button>
         <button
-          className={`px-4 py-2 font-bold ${tab === "optimized" ? "text-travel border-b-2 border-travel" : "text-slate-500"}`}
+          className={`px-4 py-2 font-bold ${tab === "optimized" ? "text-travel border-b-2 border-travel" : "text-slate-500 hover:text-slate-700"}`}
           onClick={() => setTab("optimized")}
         >
           Gợi ý chuyển khoản (Tối ưu)
         </button>
       </div>
+
       {tab === "detailed" ? (
         <>
           <p className="mb-5 text-sm text-slate-500">
-            Chỉ khoản chi do thành viên trả hộ mới xuất hiện ở đây. Chi từ quỹ
-            chung không tạo công nợ.
+            Đây là danh sách sao kê chi tiết từng khoản nợ cá nhân phát sinh từ các giao dịch trả hộ. Vui lòng sử dụng mục <strong>Gợi ý chuyển khoản (Tối ưu)</strong> để thực hiện thanh toán.
           </p>
           <ErrorBox message={detailed.error} />
           <div className="space-y-3">
@@ -89,20 +151,6 @@ export function SettlementsPage() {
                 </div>
                 <div className="flex items-center gap-4">
                   <b>{currency(split.amount_owed)}</b>
-                  <button
-                    disabled={split.is_settled}
-                    className="btn-secondary"
-                    onClick={async () => {
-                      await api(`/splits/${split.id}/settled`, {
-                        method: "PATCH",
-                        body: { is_settled: true },
-                      });
-                      detailed.reload();
-                      optimized.reload();
-                    }}
-                  >
-                    {split.is_settled ? "Đã hoàn tiền" : "Đánh dấu đã hoàn"}
-                  </button>
                 </div>
               </div>
             ))}
