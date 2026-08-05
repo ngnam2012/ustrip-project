@@ -7,7 +7,7 @@ from src.utils.api import ApiError
 from src.services.notifications_service import notify_trip_members
 
 router = APIRouter(tags=["activities"])
-activity_fields = ['title', 'activity_date', 'start_time', 'end_time', 'location', 'location_name', 'address', 'latitude', 'longitude', 'place_id', 'map_provider', 'estimated_cost', 'notes']
+activity_fields = ['title', 'activity_date', 'end_date', 'start_time', 'end_time', 'location', 'location_name', 'address', 'latitude', 'longitude', 'place_id', 'map_provider', 'estimated_cost', 'notes']
 
 async def save_participants(activity_id: str, participants: List[str]):
     db.table('activity_participants').delete().eq('activity_id', activity_id).execute()
@@ -35,6 +35,8 @@ async def create_activity(request: Request, activity_in: ActivityCreate, current
     # Format dates/times for Supabase JSON insert
     if 'activity_date' in payload and payload['activity_date']:
         payload['activity_date'] = payload['activity_date'].isoformat()
+    if 'end_date' in payload and payload['end_date']:
+        payload['end_date'] = payload['end_date'].isoformat()
     if 'start_time' in payload and payload['start_time']:
         payload['start_time'] = payload['start_time'].isoformat()
     if 'end_time' in payload and payload['end_time']:
@@ -72,6 +74,8 @@ async def update_activity(request: Request, activity_in: ActivityUpdate, current
     
     if 'activity_date' in payload and payload['activity_date']:
         payload['activity_date'] = payload['activity_date'].isoformat()
+    if 'end_date' in payload and payload['end_date']:
+        payload['end_date'] = payload['end_date'].isoformat()
     if 'start_time' in payload and payload['start_time']:
         payload['start_time'] = payload['start_time'].isoformat()
     if 'end_time' in payload and payload['end_time']:

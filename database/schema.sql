@@ -54,6 +54,7 @@ create table itinerary_activities (
   trip_id uuid not null references trips(id) on delete cascade,
   title text not null,
   activity_date date not null,
+  end_date date,
   start_time time,
   end_time time,
   location text,
@@ -67,7 +68,8 @@ create table itinerary_activities (
   notes text,
   created_by uuid not null references profiles(id),
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  constraint valid_activity_dates check (end_date is null OR end_date >= activity_date)
 );
 
 create table activity_participants (
@@ -201,6 +203,7 @@ create index idx_trip_members_user on trip_members(user_id);
 create index idx_trip_members_trip on trip_members(trip_id);
 create index idx_trip_members_invitation_status on trip_members(user_id, invitation_status);
 create index idx_activities_trip_date on itinerary_activities(trip_id, activity_date);
+create index idx_activities_trip_end_date on itinerary_activities(trip_id, end_date);
 create index idx_contributions_trip on fund_contributions(trip_id);
 create index idx_payments_trip_status on payments(trip_id, status);
 create index idx_payments_member on payments(member_id, created_at desc);
