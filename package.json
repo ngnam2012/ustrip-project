@@ -9,11 +9,7 @@
     "dev": "npx concurrently --kill-others-on-fail --names API,WEB,MOBILE --prefix-colors blue,green,magenta \"npm run dev:server\" \"npm run dev:web\" \"npm run dev:mobile\"",
     "dev:web": "npm run dev -w apps/web",
     "dev:mobile": "npm run start -w apps/mobile",
-<<<<<<< HEAD
     "dev:server": "cd server && venv\\Scripts\\python.exe -m uvicorn src.main:socket_app --host 0.0.0.0 --port 5000 --reload",
-=======
-    "dev:server": "cd server && venv\\Scripts\\python -m uvicorn src.main:socket_app --host 0.0.0.0 --port 5000 --reload",
->>>>>>> 215e139ed5ef41b08d041155dbef3e6b2f3b02f5
     "check": "npm run build -w apps/web",
     "db:push": "node database/migrate.js"
   },

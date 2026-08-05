@@ -1,6 +1,6 @@
 import { MapPin, Plus } from "lucide-react";
-import { useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { Empty, ErrorBox, Loader, Modal } from "../components/ui";
 import { useRemote } from "../hooks/useRemote";
 import { api, currency, dateText } from "../lib/api";
@@ -11,23 +11,90 @@ import { Head } from "./shared";
 
 export function ItineraryPage() {
   const { tripId } = useParams();
+  const navigate = useNavigate();
   const { data, loading, error, reload } = useRemote(
     `/trips/${tripId}/activities`,
   );
-  const [showForm, setShowForm] = useState(false);
-  const groups = useMemo(
-    () =>
-      Object.groupBy
-        ? Object.groupBy(data || [], (x) => x.activity_date)
-        : (data || []).reduce(
-            (r, x) => ({
-              ...r,
-              [x.activity_date]: [...(r[x.activity_date] || []), x],
-            }),
-            {},
-          ),
-    [data],
+  const { data: members, loading: membersLoading } = useRemote(
+    `/trips/${tripId}/members`,
   );
+  const [showForm, setShowForm] = useState(false);
+  const [editingActivity, setEditingActivity] = useState(null);
+
+  const deleteActivity = async (activityId) => {
+    if (!confirm("Xóa hoạt động này?")) return;
+    await api(`/activities/${activityId}`, { method: "DELETE" });
+    toast.success("Đã xóa hoạt động");
+    reload();
+  };
+
+  const editActivity = (activity) => {
+    // If this is an expanded occurrence, load the original full activity
+    (async () => {
+      try {
+        if (activity?.original_id && data) {
+          const orig = data.find((a) => a.id === activity.original_id);
+          if (orig) return setEditingActivity(orig);
+          // fallback: fetch from API
+          const fetched = await api(`/activities/${activity.original_id}`);
+          return setEditingActivity(fetched);
+        }
+      } catch (e) {
+        // ignore and fall through
+      }
+      setEditingActivity(activity);
+    })();
+  };
+  const occurrences = useMemo(() => {
+    if (!data) return [];
+    const out = [];
+    for (const act of data) {
+      const start = new Date(act.activity_date);
+      const end = act.end_date ? new Date(act.end_date) : new Date(act.activity_date);
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        const dateStr = new Date(d).toISOString().split("T")[0];
+        const isFirst = dateStr === (act.activity_date || dateStr);
+        const isLast = dateStr === (act.end_date || act.activity_date || dateStr);
+        let occStart = null;
+        let occEnd = null;
+        if (isFirst) {
+          occStart = act.start_time ? act.start_time.slice(0, 5) : null;
+          occEnd = isLast ? (act.end_time ? act.end_time.slice(0, 5) : null) : "23:59";
+        } else if (isLast) {
+          occStart = "00:00";
+          occEnd = act.end_time ? act.end_time.slice(0, 5) : null;
+        } else {
+          occStart = "00:00";
+          occEnd = "23:59";
+        }
+        out.push({
+          ...act,
+          original_id: act.id,
+          activity_date: dateStr,
+          start_time: occStart,
+          end_time: occEnd,
+          is_continuation: !isFirst,
+        });
+      }
+    }
+    return out;
+  }, [data]);
+
+  const groups = useMemo(() => {
+    const items = occurrences || [];
+    const grouped = Object.groupBy
+      ? Object.groupBy(items, (x) => x.activity_date)
+      : items.reduce((r, x) => ({ ...r, [x.activity_date]: [...(r[x.activity_date] || []), x] }), {});
+    // sort each day's items by start_time (nulls at end)
+    Object.keys(grouped).forEach((k) => {
+      grouped[k].sort((a, b) => {
+        const ta = a.start_time || "";
+        const tb = b.start_time || "";
+        return ta < tb ? -1 : ta > tb ? 1 : 0;
+      });
+    });
+    return grouped;
+  }, [occurrences]);
   if (loading) return <Loader />;
   return (
     <>
@@ -55,16 +122,24 @@ export function ItineraryPage() {
               date={date}
               items={items}
               tripId={tripId}
+              onEdit={editActivity}
+              onDelete={deleteActivity}
             />
           ))}
         </div>
       )}
-      {showForm && (
+      {(showForm || editingActivity) && (
         <ActivityForm
           tripId={tripId}
-          onClose={() => setShowForm(false)}
+          members={members || []}
+          activity={editingActivity}
+          onClose={() => {
+            setShowForm(false);
+            setEditingActivity(null);
+          }}
           onSaved={() => {
             setShowForm(false);
+            setEditingActivity(null);
             reload();
           }}
         />
@@ -73,7 +148,7 @@ export function ItineraryPage() {
   );
 }
 
-function ItineraryDay({ date, items, tripId }) {
+function ItineraryDay({ date, items, tripId, onEdit, onDelete }) {
   const [open, setOpen] = useState(true);
   return (
     <section>
@@ -103,15 +178,22 @@ function ItineraryDay({ date, items, tripId }) {
           >
             <div className="absolute bottom-0 left-4 top-0 border-l-2 border-dashed border-blue-200/60" />
             {items.map((item) => (
-              <Link
-                to={`/trips/${tripId}/activities/${item.id}`}
-                key={item.id}
+              <div
+                key={`${item.original_id || item.id}-${item.activity_date}`}
                 className="card relative block border-l-4 border-l-travel/80 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lift hover:border-l-travel"
               >
                 <span className="absolute -left-[25px] top-6 h-3 w-3 rounded-full bg-travel ring-4 ring-blue-50 shadow-sm" />
                 <div className="flex flex-wrap justify-between gap-3">
                   <div>
-                    <h3 className="font-bold text-ink">{item.title}</h3>
+                    <Link
+                      to={`/trips/${tripId}/activities/${item.original_id || item.id}`}
+                      className="font-bold text-ink hover:text-travel"
+                    >
+                      {item.title}
+                      {item.is_continuation && (
+                        <span className="ml-2 text-xs text-slate-400">(Tiếp tục)</span>
+                      )}
+                    </Link>
                     <p className="mt-2 flex items-center gap-1.5 text-sm text-slate-500">
                       <MapPin size={14} />
                       {item.location || "Chưa đặt địa điểm"}
@@ -127,7 +209,23 @@ function ItineraryDay({ date, items, tripId }) {
                     </p>
                   </div>
                 </div>
-              </Link>
+                <div className="mt-4 flex justify-end gap-3">
+                  <button
+                    type="button"
+                    className="text-sm font-semibold text-blue-600 transition hover:text-blue-800"
+                    onClick={() => onEdit(item)}
+                  >
+                    Chỉnh sửa
+                  </button>
+                  <button
+                    type="button"
+                    className="text-sm font-semibold text-red-500 transition hover:text-red-700"
+                    onClick={() => onDelete(item.id)}
+                  >
+                    Xóa
+                  </button>
+                </div>
+              </div>
             ))}
           </motion.div>
         )}
@@ -136,40 +234,88 @@ function ItineraryDay({ date, items, tripId }) {
   );
 }
 
-export function ActivityForm({ tripId, initialData, onClose, onSaved }) {
-  const [formData, setFormData] = useState(
-    initialData || {
-      title: "",
-      activity_date: "",
-      start_time: "",
-      end_time: "",
-      location: "",
-      location_name: "",
-      address: "",
-      latitude: null,
-      longitude: null,
-      map_provider: "openstreetmap",
-      estimated_cost: 0,
-      notes: "",
-    }
-  );
+function ActivityForm({ tripId, members = [], activity, onClose, onSaved }) {
+  const [formData, setFormData] = useState({
+    title: "",
+    start_datetime: "",
+    end_datetime: "",
+    location: "",
+    location_name: "",
+    address: "",
+    latitude: null,
+    longitude: null,
+    map_provider: "openstreetmap",
+    estimated_cost: "",
+    participants: [],
+    notes: "",
+  });
   const [errorMessage, setErrorMessage] = useState("");
+
+  useEffect(() => {
+    if (activity) {
+      setFormData({
+        title: activity.title || "",
+        start_datetime: `${activity.activity_date || ""}T${activity.start_time?.slice(0, 5) || "00:00"}`,
+        end_datetime: `${activity.end_date || activity.activity_date || ""}T${activity.end_time?.slice(0, 5) || "00:00"}`,
+        location: activity.location || "",
+        location_name: activity.location_name || activity.location || "",
+        address: activity.address || "",
+        latitude: activity.latitude || null,
+        longitude: activity.longitude || null,
+        map_provider: activity.map_provider || "openstreetmap",
+        estimated_cost: activity.estimated_cost
+          ? String(activity.estimated_cost).replace(/\B(?=(\d{3})+(?!\d))/g, ".")
+          : "",
+        participants: activity.participants?.map((p) => p.user_id) || members.map((member) => member.user_id),
+        notes: activity.notes || "",
+      });
+      return;
+    }
+    if (members?.length && !formData.participants.length) {
+      setFormData((prev) => ({
+        ...prev,
+        participants: members.map((member) => member.user_id),
+      }));
+    }
+  }, [activity, members]);
+
+  const formatMoney = (value) => {
+    const digits = String(value || "").replace(/\D/g, "");
+    return digits ? digits.replace(/\B(?=(\d{3})+(?!\d))/g, ".") : "";
+  };
+
   const submit = async (event) => {
     event.preventDefault();
     try {
-      if (initialData) {
-        await api(`/activities/${initialData.id}`, { method: "PATCH", body: formData });
-        toast.success("Đã cập nhật hoạt động");
-      } else {
-        await api(`/trips/${tripId}/activities`, { method: "POST", body: formData });
-        toast.success("Đã thêm hoạt động");
-      }
+      const startDate = formData.start_datetime.split("T");
+      const endDate = formData.end_datetime.split("T");
+      await api(activity ? `/activities/${activity.id}` : `/trips/${tripId}/activities`, {
+        method: activity ? "PATCH" : "POST",
+        body: {
+          title: formData.title,
+          activity_date: startDate[0] || "",
+          end_date: endDate[0] || startDate[0] || "",
+          start_time: startDate[1] || "",
+          end_time: endDate[1] || "",
+          location: formData.location,
+          location_name: formData.location_name,
+          address: formData.address,
+          latitude: formData.latitude,
+          longitude: formData.longitude,
+          map_provider: formData.map_provider,
+          estimated_cost: Number(String(formData.estimated_cost).replace(/\D/g, "")) || 0,
+          notes: formData.notes,
+          participants: formData.participants,
+        },
+      });
+      toast.success(activity ? "Đã cập nhật hoạt động" : "Đã thêm hoạt động");
       onSaved();
     } catch (err) {
       setErrorMessage(err.message);
       toast.error(err.message);
     }
   };
+
   return (
     <Modal title={initialData ? "Chỉnh sửa hoạt động" : "Thêm hoạt động"} onClose={onClose}>
       <form onSubmit={submit}>
@@ -184,20 +330,20 @@ export function ActivityForm({ tripId, initialData, onClose, onSaved }) {
             />
           </div>
           <div>
-            <label>Ngày</label>
+            <label>Bắt đầu</label>
             <input
               required
-              type="date"
-              value={formData.activity_date}
-              onChange={(event) => setFormData({ ...formData, activity_date: event.target.value })}
+              type="datetime-local"
+              value={formData.start_datetime}
+              onChange={(event) => setFormData({ ...formData, start_datetime: event.target.value })}
             />
           </div>
           <div>
-            <label>Bắt đầu</label>
+            <label>Kết thúc</label>
             <input
-              type="time"
-              value={formData.start_time}
-              onChange={(event) => setFormData({ ...formData, start_time: event.target.value })}
+              type="datetime-local"
+              value={formData.end_datetime}
+              onChange={(event) => setFormData({ ...formData, end_datetime: event.target.value })}
             />
           </div>
           <div className="sm:col-span-2">
@@ -231,21 +377,46 @@ export function ActivityForm({ tripId, initialData, onClose, onSaved }) {
               Có thể tìm kiếm hoặc bấm trực tiếp lên bản đồ để chọn tọa độ.
             </p>
           </div>
-          <div>
-            <label>Kết thúc</label>
-            <input
-              type="time"
-              value={formData.end_time}
-              onChange={(event) => setFormData({ ...formData, end_time: event.target.value })}
-            />
+          <div className="sm:col-span-2">
+            <label>Thành viên tham gia</label>
+            <div className="mt-2 grid gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
+              {members?.map((member) => (
+                <label
+                  key={member.user_id}
+                  className="flex items-center justify-between gap-3 rounded-xl border px-4 py-3 text-sm transition hover:border-travel"
+                >
+                  <span className="font-semibold text-slate-700">
+                    {member.profile.full_name}
+                  </span>
+                  <input
+                    className="h-4 w-4 accent-blue-600"
+                    type="checkbox"
+                    checked={formData.participants.includes(member.user_id)}
+                    onChange={() => {
+                      setFormData((prev) => {
+                        const checked = prev.participants.includes(member.user_id);
+                        return {
+                          ...prev,
+                          participants: checked
+                            ? prev.participants.filter((id) => id !== member.user_id)
+                            : [...prev.participants, member.user_id],
+                        };
+                      });
+                    }}
+                  />
+                </label>
+              ))}
+            </div>
           </div>
           <div>
             <label>Chi phí dự kiến</label>
             <input
-              type="number"
-              min="0"
+              type="text"
+              inputMode="numeric"
               value={formData.estimated_cost}
-              onChange={(event) => setFormData({ ...formData, estimated_cost: event.target.value })}
+              onChange={(event) =>
+                setFormData({ ...formData, estimated_cost: formatMoney(event.target.value) })
+              }
             />
           </div>
         </div>

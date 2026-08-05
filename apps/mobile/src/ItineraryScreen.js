@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, Pressable, SafeAreaView, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, Pressable, SafeAreaView, ActivityIndicator, Alert } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { C, S, SP, R, Shadows } from './ui';
 import { api } from './api';
@@ -68,6 +68,39 @@ export default function ItineraryScreen({ route, navigation }) {
   }
 
   const filteredActivities = activities.filter(a => a.activity_date === selectedDate || !a.activity_date);
+  // Expand multi-day activities into per-day occurrences
+  const occurrences = [];
+  for (const act of activities) {
+    const start = new Date(act.activity_date);
+    const end = act.end_date ? new Date(act.end_date) : new Date(act.activity_date);
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      const dateStr = new Date(d).toISOString().split('T')[0];
+      const isFirst = dateStr === (act.activity_date || dateStr);
+      const isLast = dateStr === (act.end_date || act.activity_date || dateStr);
+      let occStart = null;
+      let occEnd = null;
+      if (isFirst) {
+        occStart = act.start_time?.slice(0,5) || null;
+        occEnd = isLast ? (act.end_time?.slice(0,5) || null) : '23:59';
+      } else if (isLast) {
+        occStart = '00:00';
+        occEnd = act.end_time?.slice(0,5) || null;
+      } else {
+        occStart = '00:00';
+        occEnd = '23:59';
+      }
+      occurrences.push({
+        ...act,
+        original_id: act.id,
+        activity_date: dateStr,
+        start_time: occStart,
+        end_time: occEnd,
+        is_continuation: !isFirst,
+      });
+    }
+  }
+
+  const filteredOccurrences = occurrences.filter(o => o.activity_date === selectedDate);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
@@ -113,11 +146,11 @@ export default function ItineraryScreen({ route, navigation }) {
           {/* Vertical Line */}
           <View style={{ position: 'absolute', left: 11, top: 0, bottom: 0, width: 2, backgroundColor: C.line }} />
           
-          {filteredActivities.length === 0 ? (
+          {filteredOccurrences.length === 0 ? (
             <Text style={[S.emptyText, { marginTop: SP.xl }]}>Chưa có hoạt động nào trong ngày này.</Text>
           ) : (
-            filteredActivities.map((act, index) => (
-              <View key={act.id || index} style={{ marginBottom: SP.md, position: 'relative' }}>
+            filteredOccurrences.map((act, index) => (
+              <Pressable key={`${act.original_id || act.id}-${act.activity_date}`} onPress={() => navigation.navigate('ItemDetail', { item: { id: act.original_id || act.id }, trip })} style={{ marginBottom: SP.md, position: 'relative' }}>
                 {/* Dot */}
                 <View style={{ position: 'absolute', left: -SP.lg - 11, top: 6, width: 24, height: 24, backgroundColor: C.bg, borderRadius: R.full, alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
                   <View style={{ width: 12, height: 12, backgroundColor: index === 0 ? C.blue : C.border, borderRadius: R.full, borderWidth: 4, borderColor: index === 0 ? C.blueLight : C.surfaceVariant }} />
@@ -141,19 +174,48 @@ export default function ItineraryScreen({ route, navigation }) {
                     
                     <Pressable 
                       style={{ backgroundColor: C.blueSoft, paddingHorizontal: 12, paddingVertical: 6, borderRadius: R.sm, ...S.row }}
-                      onPress={() => navigation.navigate('AddExpense', { trip, activity: act })}
+                      onPress={() => navigation.navigate('AddExpense', { trip, activity: { id: act.original_id || act.id } })}
                     >
                       <Ionicons name="receipt-outline" size={14} color={C.blue} style={{ marginRight: 4 }} />
                       <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 12, color: C.blue }}>Ghi bill</Text>
-                    </Pressable>
-                  </View>
-                </View>
-              </View>
-            ))
-          )}
-        </View>
-      </ScrollView>
-
+                    <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+                      <Pressable 
+                        style={{ backgroundColor: C.blueSoft, paddingHorizontal: 12, paddingVertical: 6, borderRadius: R.sm, ...S.row, marginRight: 8 }}
+                        onPress={() => navigation.navigate('AddExpense', { trip, activity: { id: act.original_id || act.id } })}
+                      >
+                        <Ionicons name="receipt-outline" size={14} color={C.blue} style={{ marginRight: 4 }} />
+                        <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 12, color: C.blue }}>Ghi bill</Text>
+                      </Pressable>
+                      <Pressable
+                        style={{ backgroundColor: '#E6F0FF', paddingHorizontal: 10, paddingVertical: 6, borderRadius: R.sm }}
+                        onPress={() => navigation.navigate('AddActivity', { trip, activityId: act.original_id || act.id })}
+                      >
+                        <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 12, color: C.blue }}>Chỉnh sửa</Text>
+                      </Pressable>
+                      <Pressable
+                        style={{ backgroundColor: '#FFECEC', paddingHorizontal: 10, paddingVertical: 6, borderRadius: R.sm, marginLeft: 8 }}
+                        onPress={() => {
+                          const id = act.original_id || act.id;
+                          if (!id) return;
+                          Alert.alert('Xóa hoạt động', 'Bạn có chắc muốn xóa hoạt động này?', [
+                            { text: 'Hủy', style: 'cancel' },
+                            { text: 'Xóa', style: 'destructive', onPress: async () => {
+                                try {
+                                  await api(`/activities/${id}`, { method: 'DELETE' });
+                                  const refreshed = await api(`/trips/${trip.id}/activities`);
+                                  setActivities(refreshed);
+                                } catch (e) {
+                                  Alert.alert('Lỗi', e.message);
+                                }
+                              }
+                            }
+                          ]);
+                        }}
+                      >
+                        <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 12, color: C.red }}>Xóa</Text>
+                      </Pressable>
+                    </View>
+                    
       {/* FAB */}
       <Pressable 
         style={{ position: 'absolute', bottom: 100, right: 24, width: 56, height: 56, backgroundColor: C.blue, borderRadius: R.xl, alignItems: 'center', justifyContent: 'center', ...Shadows.kinetic, zIndex: 100 }}
