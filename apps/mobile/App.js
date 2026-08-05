@@ -850,10 +850,23 @@ function AddActivity({ route, navigation }) {
     longitude: 106.7009,
     map_provider: "openstreetmap",
     estimated_cost: "",
+    participants: [],
     notes: "",
   });
+  const [members, setMembers] = useState([]);
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
+
+  useEffect(() => {
+    api(`/trips/${trip.id}/members`).then((x) => {
+      setMembers(x || []);
+      setF((v) => ({
+        ...v,
+        participants: x?.map((member) => member.user_id) || [],
+      }));
+    });
+  }, [trip.id]);
+
   const searchLocation = async () => {
     if (!f.location?.trim()) return;
     setSearching(true);
@@ -880,9 +893,29 @@ function AddActivity({ route, navigation }) {
     });
     setSearchResults([]);
   };
+  const formatCurrencyInput = (value) =>
+    String(value)
+      .replace(/\D/g, "")
+      .replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+
+  const toggleParticipant = (userId) => {
+    setF((prev) => ({
+      ...prev,
+      participants: prev.participants.includes(userId)
+        ? prev.participants.filter((id) => id !== userId)
+        : [...prev.participants, userId],
+    }));
+  };
+
   const submit = async () => {
     try {
-      await api(`/trips/${trip.id}/activities`, { method: "POST", body: f });
+      await api(`/trips/${trip.id}/activities`, {
+        method: "POST",
+        body: {
+          ...f,
+          estimated_cost: Number(String(f.estimated_cost).replace(/\D/g, "")) || 0,
+        },
+      });
       Alert.alert("Thành công", "Đã thêm hoạt động");
       navigation.goBack();
     } catch (e) {
@@ -967,11 +1000,64 @@ function AddActivity({ route, navigation }) {
             setF({ ...f, ...point, map_provider: "openstreetmap" })
           }
         />
+        <View style={{ marginBottom: 16 }}>
+          <Text style={S.label}>Thành viên tham gia</Text>
+          {members.map((member) => (
+            <Pressable
+              key={member.user_id}
+              onPress={() => toggleParticipant(member.user_id)}
+              style={({ pressed }) => [
+                {
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: SP.md,
+                  borderRadius: 16,
+                  borderWidth: 1,
+                  borderColor: f.participants.includes(member.user_id)
+                    ? C.blue
+                    : C.line,
+                  backgroundColor: f.participants.includes(member.user_id)
+                    ? C.blueSoft
+                    : C.surface,
+                  marginBottom: 8,
+                  opacity: pressed ? 0.85 : 1,
+                },
+              ]}
+            >
+              <Text style={{ fontFamily: "Inter_600SemiBold", color: C.ink }}>
+                {member.profile.full_name}
+              </Text>
+              <View
+                style={{
+                  width: 20,
+                  height: 20,
+                  borderRadius: 6,
+                  borderWidth: 1,
+                  borderColor: C.border,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: f.participants.includes(member.user_id)
+                    ? C.blue
+                    : C.surface,
+                }}
+              >
+                {f.participants.includes(member.user_id) && (
+                  <View
+                    style={{ width: 10, height: 10, backgroundColor: C.white, borderRadius: 3 }}
+                  />
+                )}
+              </View>
+            </Pressable>
+          ))}
+        </View>
         <Field
           label="Chi phí dự kiến"
           keyboardType="numeric"
           value={f.estimated_cost}
-          onChangeText={(v) => setF({ ...f, estimated_cost: v })}
+          onChangeText={(v) =>
+            setF({ ...f, estimated_cost: formatCurrencyInput(v) })
+          }
         />
         <Button title="Lưu hoạt động" onPress={submit} />
       </ScrollView>

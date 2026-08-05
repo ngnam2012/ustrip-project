@@ -1,5 +1,5 @@
 import { MapPin, Plus } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Empty, ErrorBox, Loader, Modal } from "../components/ui";
 import { useRemote } from "../hooks/useRemote";
@@ -13,6 +13,9 @@ export function ItineraryPage() {
   const { tripId } = useParams();
   const { data, loading, error, reload } = useRemote(
     `/trips/${tripId}/activities`,
+  );
+  const { data: members, loading: membersLoading } = useRemote(
+    `/trips/${tripId}/members`,
   );
   const [showForm, setShowForm] = useState(false);
   const groups = useMemo(
@@ -62,6 +65,7 @@ export function ItineraryPage() {
       {showForm && (
         <ActivityForm
           tripId={tripId}
+          members={members || []}
           onClose={() => setShowForm(false)}
           onSaved={() => {
             setShowForm(false);
@@ -135,26 +139,60 @@ function ItineraryDay({ date, items, tripId }) {
   );
 }
 
-function ActivityForm({ tripId, onClose, onSaved }) {
+function ActivityForm({ tripId, members = [], onClose, onSaved }) {
   const [formData, setFormData] = useState({
     title: "",
-    activity_date: "",
-    start_time: "",
-    end_time: "",
+    start_datetime: "",
+    end_datetime: "",
     location: "",
     location_name: "",
     address: "",
     latitude: null,
     longitude: null,
     map_provider: "openstreetmap",
-    estimated_cost: 0,
+    estimated_cost: "",
+    participants: [],
     notes: "",
   });
   const [errorMessage, setErrorMessage] = useState("");
+
+  useEffect(() => {
+    if (members?.length && !formData.participants.length) {
+      setFormData((prev) => ({
+        ...prev,
+        participants: members.map((member) => member.user_id),
+      }));
+    }
+  }, [members]);
+
+  const formatMoney = (value) => {
+    const digits = String(value || "").replace(/\D/g, "");
+    return digits ? digits.replace(/\B(?=(\d{3})+(?!\d))/g, ".") : "";
+  };
+
   const submit = async (event) => {
     event.preventDefault();
     try {
-      await api(`/trips/${tripId}/activities`, { method: "POST", body: formData });
+      const startDate = formData.start_datetime.split("T");
+      const endDate = formData.end_datetime.split("T");
+      await api(`/trips/${tripId}/activities`, {
+        method: "POST",
+        body: {
+          title: formData.title,
+          activity_date: startDate[0] || "",
+          start_time: startDate[1] || "",
+          end_time: endDate[1] || "",
+          location: formData.location,
+          location_name: formData.location_name,
+          address: formData.address,
+          latitude: formData.latitude,
+          longitude: formData.longitude,
+          map_provider: formData.map_provider,
+          estimated_cost: Number(String(formData.estimated_cost).replace(/\D/g, "")) || 0,
+          notes: formData.notes,
+          participants: formData.participants,
+        },
+      });
       toast.success("Đã thêm hoạt động");
       onSaved();
     } catch (err) {
@@ -162,6 +200,7 @@ function ActivityForm({ tripId, onClose, onSaved }) {
       toast.error(err.message);
     }
   };
+
   return (
     <Modal title="Thêm hoạt động" onClose={onClose}>
       <form onSubmit={submit}>
@@ -176,20 +215,20 @@ function ActivityForm({ tripId, onClose, onSaved }) {
             />
           </div>
           <div>
-            <label>Ngày</label>
+            <label>Bắt đầu</label>
             <input
               required
-              type="date"
-              value={formData.activity_date}
-              onChange={(event) => setFormData({ ...formData, activity_date: event.target.value })}
+              type="datetime-local"
+              value={formData.start_datetime}
+              onChange={(event) => setFormData({ ...formData, start_datetime: event.target.value })}
             />
           </div>
           <div>
-            <label>Bắt đầu</label>
+            <label>Kết thúc</label>
             <input
-              type="time"
-              value={formData.start_time}
-              onChange={(event) => setFormData({ ...formData, start_time: event.target.value })}
+              type="datetime-local"
+              value={formData.end_datetime}
+              onChange={(event) => setFormData({ ...formData, end_datetime: event.target.value })}
             />
           </div>
           <div className="sm:col-span-2">
@@ -223,21 +262,46 @@ function ActivityForm({ tripId, onClose, onSaved }) {
               Có thể tìm kiếm hoặc bấm trực tiếp lên bản đồ để chọn tọa độ.
             </p>
           </div>
-          <div>
-            <label>Kết thúc</label>
-            <input
-              type="time"
-              value={formData.end_time}
-              onChange={(event) => setFormData({ ...formData, end_time: event.target.value })}
-            />
+          <div className="sm:col-span-2">
+            <label>Thành viên tham gia</label>
+            <div className="mt-2 grid gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
+              {members?.map((member) => (
+                <label
+                  key={member.user_id}
+                  className="flex items-center justify-between gap-3 rounded-xl border px-4 py-3 text-sm transition hover:border-travel"
+                >
+                  <span className="font-semibold text-slate-700">
+                    {member.profile.full_name}
+                  </span>
+                  <input
+                    className="h-4 w-4 accent-blue-600"
+                    type="checkbox"
+                    checked={formData.participants.includes(member.user_id)}
+                    onChange={() => {
+                      setFormData((prev) => {
+                        const checked = prev.participants.includes(member.user_id);
+                        return {
+                          ...prev,
+                          participants: checked
+                            ? prev.participants.filter((id) => id !== member.user_id)
+                            : [...prev.participants, member.user_id],
+                        };
+                      });
+                    }}
+                  />
+                </label>
+              ))}
+            </div>
           </div>
           <div>
             <label>Chi phí dự kiến</label>
             <input
-              type="number"
-              min="0"
+              type="text"
+              inputMode="numeric"
               value={formData.estimated_cost}
-              onChange={(event) => setFormData({ ...formData, estimated_cost: event.target.value })}
+              onChange={(event) =>
+                setFormData({ ...formData, estimated_cost: formatMoney(event.target.value) })
+              }
             />
           </div>
         </div>
