@@ -359,21 +359,56 @@ function AuthScreen({ route, navigation }) {
 }
 
 function Trips({ navigation }) {
-  const [data, setData] = useState(null);
+  const [trips, setTrips] = useState(null);
+  const [pendingInvitations, setPendingInvitations] = useState([]);
+  const [respondingId, setRespondingId] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+
   const load = async () => {
     try {
-      setData(await api("/trips"));
+      const res = await api("/trips");
+      // API now returns { trips, pending_invitations }
+      if (res && Array.isArray(res.trips)) {
+        setTrips(res.trips);
+        setPendingInvitations(res.pending_invitations || []);
+      } else {
+        // Fallback if backend hasn't been updated yet
+        setTrips(Array.isArray(res) ? res : []);
+        setPendingInvitations([]);
+      }
     } catch (e) {
       Alert.alert("Lỗi", e.message);
     } finally {
       setRefreshing(false);
     }
   };
+
+  const respondInvitation = async (tripId, action) => {
+    if (respondingId) return;
+    setRespondingId(tripId + action);
+    try {
+      const res = await api(`/trips/${tripId}/members/respond`, {
+        method: "POST",
+        body: { action },
+      });
+      Alert.alert(
+        action === "accept" ? "Đã tham gia! 🎉" : "Đã từ chối",
+        res.message || ""
+      );
+      await load();
+    } catch (e) {
+      Alert.alert("Lỗi", e.message);
+    } finally {
+      setRespondingId(null);
+    }
+  };
+
   useEffect(() => {
     load();
   }, []);
-  if (!data) return <Loading />;
+
+  if (!trips) return <Loading />;
+
   return (
     <SafeAreaView style={S.screen}>
       <ScrollView
@@ -393,8 +428,76 @@ function Trips({ navigation }) {
           title="+ Tạo chuyến đi mới"
           onPress={() => navigation.navigate("CreateTrip", { refresh: load })}
         />
+
+        {/* ── Pending Invitations Section ── */}
+        {pendingInvitations.length > 0 && (
+          <>
+            <View style={{ height: 20 }} />
+            <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 10 }}>
+              <View style={{
+                width: 4, height: 18, borderRadius: 2,
+                backgroundColor: C.orange, marginRight: 8
+              }} />
+              <Text style={[S.h2, { fontSize: 14, color: C.orange }]}>
+                Lời mời đang chờ ({pendingInvitations.length})
+              </Text>
+            </View>
+            {pendingInvitations.map((t, i) => (
+              <AnimatedCard key={t.id} index={i} style={{
+                borderWidth: 1.5,
+                borderColor: C.orange,
+                borderStyle: "dashed",
+              }}>
+                <Text style={S.h2}>{t.name}</Text>
+                <Text style={S.subtitle}>📍 {t.destination}</Text>
+                <Text style={{ color: C.muted, fontSize: 12, marginTop: 4 }}>
+                  {t.start_date} → {t.end_date}
+                </Text>
+                <View style={S.separator} />
+                <View style={{ flexDirection: "row", gap: 10 }}>
+                  <Pressable
+                    id={`accept-invite-${t.id}`}
+                    onPress={() => respondInvitation(t.id, "accept")}
+                    disabled={!!respondingId}
+                    style={({ pressed }) => ([
+                      {
+                        flex: 1, paddingVertical: 10, borderRadius: 10,
+                        backgroundColor: C.blue,
+                        alignItems: "center",
+                        opacity: (pressed || !!respondingId) ? 0.75 : 1,
+                      }
+                    ])}
+                  >
+                    <Text style={{ color: C.white, fontFamily: "Inter_700Bold", fontSize: 14 }}>
+                      {respondingId === t.id + "accept" ? "..." : "✓ Chấp nhận"}
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    id={`decline-invite-${t.id}`}
+                    onPress={() => respondInvitation(t.id, "decline")}
+                    disabled={!!respondingId}
+                    style={({ pressed }) => ([
+                      {
+                        flex: 1, paddingVertical: 10, borderRadius: 10,
+                        borderWidth: 1.5, borderColor: C.red || "#EF4444",
+                        alignItems: "center",
+                        opacity: (pressed || !!respondingId) ? 0.75 : 1,
+                      }
+                    ])}
+                  >
+                    <Text style={{ color: C.red || "#EF4444", fontFamily: "Inter_700Bold", fontSize: 14 }}>
+                      {respondingId === t.id + "decline" ? "..." : "✕ Từ chối"}
+                    </Text>
+                  </Pressable>
+                </View>
+              </AnimatedCard>
+            ))}
+          </>
+        )}
+
+        {/* ── Active Trips ── */}
         <View style={{ height: 24 }} />
-        {data.map((t, i) => (
+        {trips.map((t, i) => (
           <AnimatedCard key={t.id} index={i}>
             <Pressable onPress={() => navigation.navigate("Trip", { trip: t })}>
               {t.cover_image_url && (
@@ -509,11 +612,32 @@ function DataList({ route, navigation }) {
   const { name } = route;
   const trip = route.params.trip;
   const [data, setData] = useState(null);
-  useEffect(() => {
+  const [cancelling, setCancelling] = useState(null);
+  const isOwner = trip.role === 'owner';
+
+  const loadData = () => {
     api(`/trips/${trip.id}/${endpoints[name]}`)
       .then(setData)
       .catch((e) => Alert.alert("Lỗi", e.message));
+  };
+
+  useEffect(() => {
+    loadData();
   }, [name, trip.id]);
+
+  const cancelInvite = async (userId) => {
+    if (cancelling) return;
+    setCancelling(userId);
+    try {
+      await api(`/trips/${trip.id}/members/${userId}`, { method: 'DELETE' });
+      loadData();
+    } catch (e) {
+      Alert.alert("Lỗi", e.message);
+    } finally {
+      setCancelling(null);
+    }
+  };
+
   if (!data) return <Loading />;
   return (
     <SafeAreaView style={S.screen}>
@@ -535,80 +659,128 @@ function DataList({ route, navigation }) {
             </Text>
           </Animated.View>
         ) : (
-          data.map((x, i) => (
-            <SwipeCard
-              key={x.id || i}
-              onAction={
-                name === "Itinerary"
-                  ? () =>
-                      navigation.navigate("ActivityDetail", { trip, item: x })
-                  : name === "Expenses"
+          data.map((x, i) => {
+            const isPending = name === "Members" && x.invitation_status === "pending";
+            return (
+              <SwipeCard
+                key={x.id || i}
+                onAction={
+                  name === "Itinerary"
                     ? () =>
-                        navigation.navigate("ExpenseDetail", { trip, item: x })
-                    : null
-              }
-            >
-              <AnimatedCard index={i}>
-                <Pressable
-                  onPress={() =>
-                    name === "Itinerary"
-                      ? navigation.navigate("ActivityDetail", { trip, item: x })
-                      : name === "Expenses"
-                        ? navigation.navigate("ExpenseDetail", {
+                        navigation.navigate("ActivityDetail", { trip, item: x })
+                    : name === "Expenses"
+                      ? () =>
+                          navigation.navigate("ExpenseDetail", {
                             trip,
                             item: x,
                           })
-                        : null
-                  }
+                      : null
+                }
+              >
+                <AnimatedCard
+                  index={i}
+                  style={isPending ? { borderWidth: 1, borderColor: C.orange, borderStyle: 'dashed' } : undefined}
                 >
-                  <Text style={S.h2}>
-                    {x.title ||
-                      x.profile?.full_name ||
-                      x.recipient?.full_name ||
-                      x.expense_title ||
-                      "Mục dữ liệu"}
-                  </Text>
-                  <Text style={S.subtitle}>
-                    {x.location ||
-                      x.profile?.email ||
-                      x.message ||
-                      x.category ||
-                      ""}
-                  </Text>
-                  {name === "Expenses" && (
-                    <Text style={[S.pill, { marginTop: 10 }]}>
-                      {x.payment_source === "shared_fund"
-                        ? "Chi từ quỹ chung"
-                        : "Thành viên trả hộ"}
+                  <Pressable
+                    onPress={() =>
+                      name === "Itinerary"
+                        ? navigation.navigate("ActivityDetail", { trip, item: x })
+                        : name === "Expenses"
+                          ? navigation.navigate("ExpenseDetail", {
+                              trip,
+                              item: x,
+                            })
+                          : null
+                    }
+                  >
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <Text style={[S.h2, { flex: 1 }]}>
+                        {x.title ||
+                          x.profile?.full_name ||
+                          x.recipient?.full_name ||
+                          x.expense_title ||
+                          "Mục dữ liệu"}
+                      </Text>
+                      {isPending && (
+                        <View style={{
+                          paddingHorizontal: 8, paddingVertical: 3,
+                          borderRadius: 99, backgroundColor: '#FFF3E0',
+                          marginLeft: 8, alignSelf: 'flex-start'
+                        }}>
+                          <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 11, color: C.orange }}>
+                            Chờ xác nhận
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                    <Text style={S.subtitle}>
+                      {x.location ||
+                        x.profile?.email ||
+                        x.message ||
+                        x.category ||
+                        ""}
                     </Text>
+                    {name === "Expenses" && (
+                      <Text style={[S.pill, { marginTop: 10 }]}>
+                        {x.payment_source === "shared_fund"
+                          ? "Chi từ quỹ chung"
+                          : "Thành viên trả hộ"}
+                      </Text>
+                    )}
+                    {x.amount || x.amount_owed ? (
+                      <Text style={[S.amount, { marginTop: 10 }]}>
+                        {money(x.amount || x.amount_owed)}
+                      </Text>
+                    ) : null}
+                    {x.payment_status && (
+                      <Text style={[S.pill, { marginTop: 10 }]}>
+                        {x.payment_method === "momo" ? "MoMo · " : ""}
+                        {x.payment_status}
+                      </Text>
+                    )}
+                    {x.payment_proof_url && (
+                      <Image
+                        source={{ uri: x.payment_proof_url }}
+                        resizeMode="contain"
+                        style={{
+                          height: 220,
+                          borderRadius: 16,
+                          marginTop: 14,
+                          backgroundColor: "#F1F4FA",
+                        }}
+                      />
+                    )}
+                  </Pressable>
+                  {isPending && isOwner && (
+                    <Pressable
+                      id={`cancel-invite-${x.user_id}`}
+                      onPress={() => Alert.alert(
+                        "Huỷ lời mời",
+                        `Bạn có chắc muốn huỷ lời mời đã gửi tới ${x.profile?.full_name || x.profile?.email}?`,
+                        [
+                          { text: "Không", style: "cancel" },
+                          { text: "Huỷ lời mời", style: "destructive", onPress: () => cancelInvite(x.user_id) },
+                        ]
+                      )}
+                      style={({ pressed }) => ({
+                        marginTop: 10,
+                        paddingVertical: 8,
+                        borderRadius: 8,
+                        borderWidth: 1,
+                        borderColor: C.red || "#EF4444",
+                        alignItems: "center",
+                        opacity: (pressed || cancelling === x.user_id) ? 0.7 : 1,
+                      })}
+                    >
+                      <Text style={{ fontFamily: "Inter_600SemiBold", fontSize: 13, color: C.red || "#EF4444" }}>
+                        {cancelling === x.user_id ? "Đang huỷ..." : "Huỷ lời mời"}
+                      </Text>
+                    </Pressable>
                   )}
-                  {x.amount || x.amount_owed ? (
-                    <Text style={[S.amount, { marginTop: 10 }]}>
-                      {money(x.amount || x.amount_owed)}
-                    </Text>
-                  ) : null}
-                  {x.payment_status && (
-                    <Text style={[S.pill, { marginTop: 10 }]}>
-                      {x.payment_method === "momo" ? "MoMo · " : ""}
-                      {x.payment_status}
-                    </Text>
-                  )}
-                  {x.payment_proof_url && (
-                    <Image
-                      source={{ uri: x.payment_proof_url }}
-                      resizeMode="contain"
-                      style={{
-                        height: 220,
-                        borderRadius: 16,
-                        marginTop: 14,
-                        backgroundColor: "#F1F4FA",
-                      }}
-                    />
-                  )}
-                </Pressable>
-              </AnimatedCard>
-            </SwipeCard>
-          ))
+                </AnimatedCard>
+              </SwipeCard>
+            );
+          })
         )}
       </ScrollView>
     </SafeAreaView>
@@ -1878,20 +2050,48 @@ function Notifications() {
     syncNotifications,
   } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
+  const [respondingId, setRespondingId] = useState(null);
+  const [respondedIds, setRespondedIds] = useState(new Set());
+
   useEffect(() => {
     syncNotifications();
   }, [syncNotifications]);
+
   const refresh = async () => {
     setRefreshing(true);
     await syncNotifications();
     setRefreshing(false);
   };
+
   const read = async (n) => {
     await api(`/notifications/${n.id}/read`, { method: "PATCH" });
     setD((v) =>
       (v || []).map((x) => (x.id === n.id ? { ...x, is_read: true } : x)),
     );
   };
+
+  const respondInvitation = async (n, action) => {
+    if (respondingId) return;
+    setRespondingId(n.id + action);
+    try {
+      const res = await api(`/trips/${n.trip_id}/members/respond`, {
+        method: "POST",
+        body: { action },
+      });
+      // Mark notification as read and hide action buttons
+      await read(n);
+      setRespondedIds((prev) => new Set([...prev, n.id]));
+      Alert.alert(
+        action === "accept" ? "Đã tham gia! 🎉" : "Đã từ chối",
+        res.message || ""
+      );
+    } catch (e) {
+      Alert.alert("Lỗi", e.message);
+    } finally {
+      setRespondingId(null);
+    }
+  };
+
   if (!d) return <Loading />;
   return (
     <SafeAreaView style={S.screen}>
@@ -1909,14 +2109,73 @@ function Notifications() {
             </Text>
           </AnimatedCard>
         ) : (
-          d.map((n) => (
-            <SwipeCard key={n.id} label="Đã đọc" onAction={() => read(n)}>
-              <View style={[S.card, n.is_read && { opacity: 0.55 }]}>
-                <Text style={S.h2}>{n.title}</Text>
-                <Text style={S.subtitle}>{n.message}</Text>
-              </View>
-            </SwipeCard>
-          ))
+          d.map((n) => {
+            const isInvite = n.type === "member_added" && n.trip_id && !respondedIds.has(n.id) && !n.is_read;
+            return (
+              <SwipeCard key={n.id} label="Đã đọc" onAction={() => read(n)}>
+                <View style={[S.card, n.is_read && { opacity: 0.55 }]}>
+                  {/* Invitation indicator dot */}
+                  {isInvite && (
+                    <View style={{
+                      flexDirection: "row", alignItems: "center", marginBottom: 6
+                    }}>
+                      <View style={{
+                        width: 8, height: 8, borderRadius: 4,
+                        backgroundColor: C.orange, marginRight: 6
+                      }} />
+                      <Text style={{
+                        fontFamily: "Inter_600SemiBold", fontSize: 11,
+                        color: C.orange, textTransform: "uppercase", letterSpacing: 0.5
+                      }}>
+                        Lời mời
+                      </Text>
+                    </View>
+                  )}
+                  <Text style={S.h2}>{n.title}</Text>
+                  <Text style={S.subtitle}>{n.message}</Text>
+
+                  {/* Accept / Decline buttons for pending invitations */}
+                  {isInvite && (
+                    <View style={{ flexDirection: "row", gap: 10, marginTop: 14 }}>
+                      <Pressable
+                        id={`notif-accept-${n.id}`}
+                        onPress={() => respondInvitation(n, "accept")}
+                        disabled={!!respondingId}
+                        style={({ pressed }) => ([
+                          {
+                            flex: 1, paddingVertical: 9, borderRadius: 10,
+                            backgroundColor: C.blue, alignItems: "center",
+                            opacity: (pressed || !!respondingId) ? 0.75 : 1,
+                          }
+                        ])}
+                      >
+                        <Text style={{ color: C.white, fontFamily: "Inter_700Bold", fontSize: 13 }}>
+                          {respondingId === n.id + "accept" ? "..." : "✓ Chấp nhận"}
+                        </Text>
+                      </Pressable>
+                      <Pressable
+                        id={`notif-decline-${n.id}`}
+                        onPress={() => respondInvitation(n, "decline")}
+                        disabled={!!respondingId}
+                        style={({ pressed }) => ([
+                          {
+                            flex: 1, paddingVertical: 9, borderRadius: 10,
+                            borderWidth: 1.5, borderColor: C.red || "#EF4444",
+                            alignItems: "center",
+                            opacity: (pressed || !!respondingId) ? 0.75 : 1,
+                          }
+                        ])}
+                      >
+                        <Text style={{ color: C.red || "#EF4444", fontFamily: "Inter_700Bold", fontSize: 13 }}>
+                          {respondingId === n.id + "decline" ? "..." : "✕ Từ chối"}
+                        </Text>
+                      </Pressable>
+                    </View>
+                  )}
+                </View>
+              </SwipeCard>
+            );
+          })
         )}
       </ScrollView>
     </SafeAreaView>

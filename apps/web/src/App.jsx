@@ -20,6 +20,8 @@ import { ChatPage } from './pages/ChatPage';
 import { AiPlacesPage } from './pages/AiPlacesPage';
 import { OtaPage } from './pages/OtaPage';
 
+import { InvitationsPage } from './pages/InvitationsPage';
+
 function Protected({ children }) {
   const { user, loading } = useAuth();
   if (loading) return <Loader label="Đang mở UsTrip..."/>;
@@ -33,6 +35,7 @@ export default function App() {
     <Route path="/register" element={<AuthPage mode="register"/>}/>
     <Route element={<Protected><Layout/></Protected>}>
       <Route path="/app" element={<TripsPage/>}/>
+      <Route path="/invitations" element={<InvitationsPage/>}/>
       <Route path="/notifications" element={<NotificationsPage/>}/>
       <Route path="/profile" element={<ProfilePage/>}/>
       <Route path="/trips/:tripId" element={<TripOverview/>}/>
