@@ -22,30 +22,39 @@ def sign_token(user_id: str) -> str:
 async def register(user_in: UserCreate):
     email = user_in.email.lower()
     
-    # Check existing
-    res = db.table('profiles').select('id').eq('email', email).execute()
-    existing = res.data or []
-    if existing:
-        raise ApiError(409, 'Email is already registered')
+    try:
+        # Check existing
+        res = db.table('profiles').select('id').eq('email', email).execute()
+        existing = res.data or []
+        if existing:
+            raise ApiError(409, 'Email đã được sử dụng')
+            
+        password_hash = pwd_context.hash(user_in.password)
         
-    password_hash = pwd_context.hash(user_in.password)
-    
-    # Insert
-    insert_data = {
-        "email": email,
-        "password_hash": password_hash,
-        "full_name": user_in.full_name
-    }
-    insert_res = db.table('profiles').insert(insert_data).execute()
-    if not insert_res.data:
-        raise ApiError(500, 'Failed to create user')
+        # Insert
+        insert_data = {
+            "email": email,
+            "password_hash": password_hash,
+            "full_name": user_in.full_name
+        }
+        insert_res = db.table('profiles').insert(insert_data).execute()
+        if not insert_res.data:
+            raise ApiError(500, 'Tạo tài khoản thất bại')
+            
+        user = insert_res.data[0]
         
-    user = insert_res.data[0]
-    
-    return {
-        "token": sign_token(user['id']),
-        "user": user
-    }
+        return {
+            "token": sign_token(user['id']),
+            "user": user
+        }
+    except ApiError:
+        raise
+    except Exception as e:
+        logger.error(f"Registration error: {e}")
+        err_msg = getattr(e, 'message', str(e))
+        if 'row-level security policy' in str(e):
+            raise ApiError(500, 'Lỗi Supabase RLS: Vui lòng cung cấp SUPABASE_SERVICE_ROLE_KEY chuẩn trong server/.env hoặc vô hiệu hoá RLS trên bảng profiles ở Supabase.')
+        raise ApiError(500, f'Lỗi đăng ký: {err_msg}')
 
 @router.post("/login", response_model=TokenResponse)
 async def login(user_in: UserLogin):

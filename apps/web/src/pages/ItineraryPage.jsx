@@ -99,15 +99,16 @@ function ItineraryDay({ date, items, tripId }) {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="relative space-y-3 overflow-hidden border-l-2 border-dashed border-blue-200/60 pl-6"
+            className="relative space-y-3 overflow-hidden pl-8"
           >
+            <div className="absolute bottom-0 left-4 top-0 border-l-2 border-dashed border-blue-200/60" />
             {items.map((item) => (
               <Link
                 to={`/trips/${tripId}/activities/${item.id}`}
                 key={item.id}
                 className="card relative block border-l-4 border-l-travel/80 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lift hover:border-l-travel"
               >
-                <span className="absolute -left-[32px] top-6 h-3 w-3 rounded-full bg-travel ring-4 ring-blue-50 shadow-sm" />
+                <span className="absolute -left-[25px] top-6 h-3 w-3 rounded-full bg-travel ring-4 ring-blue-50 shadow-sm" />
                 <div className="flex flex-wrap justify-between gap-3">
                   <div>
                     <h3 className="font-bold text-ink">{item.title}</h3>
@@ -135,27 +136,34 @@ function ItineraryDay({ date, items, tripId }) {
   );
 }
 
-function ActivityForm({ tripId, onClose, onSaved }) {
-  const [formData, setFormData] = useState({
-    title: "",
-    activity_date: "",
-    start_time: "",
-    end_time: "",
-    location: "",
-    location_name: "",
-    address: "",
-    latitude: null,
-    longitude: null,
-    map_provider: "openstreetmap",
-    estimated_cost: 0,
-    notes: "",
-  });
+export function ActivityForm({ tripId, initialData, onClose, onSaved }) {
+  const [formData, setFormData] = useState(
+    initialData || {
+      title: "",
+      activity_date: "",
+      start_time: "",
+      end_time: "",
+      location: "",
+      location_name: "",
+      address: "",
+      latitude: null,
+      longitude: null,
+      map_provider: "openstreetmap",
+      estimated_cost: 0,
+      notes: "",
+    }
+  );
   const [errorMessage, setErrorMessage] = useState("");
   const submit = async (event) => {
     event.preventDefault();
     try {
-      await api(`/trips/${tripId}/activities`, { method: "POST", body: formData });
-      toast.success("Đã thêm hoạt động");
+      if (initialData) {
+        await api(`/activities/${initialData.id}`, { method: "PATCH", body: formData });
+        toast.success("Đã cập nhật hoạt động");
+      } else {
+        await api(`/trips/${tripId}/activities`, { method: "POST", body: formData });
+        toast.success("Đã thêm hoạt động");
+      }
       onSaved();
     } catch (err) {
       setErrorMessage(err.message);
@@ -163,7 +171,7 @@ function ActivityForm({ tripId, onClose, onSaved }) {
     }
   };
   return (
-    <Modal title="Thêm hoạt động" onClose={onClose}>
+    <Modal title={initialData ? "Chỉnh sửa hoạt động" : "Thêm hoạt động"} onClose={onClose}>
       <form onSubmit={submit}>
         <ErrorBox message={errorMessage} />
         <div className="grid gap-4 sm:grid-cols-2">

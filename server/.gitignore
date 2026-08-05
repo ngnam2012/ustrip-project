@@ -3,3 +3,4 @@ __pycache__/
 routes.json
 openapi.json
 .env
+venv

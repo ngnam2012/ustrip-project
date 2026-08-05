@@ -72,21 +72,19 @@ export function ExpenseDetailPage() {
               {currency(data.amount)}
             </p>
           </div>
-          {personal && (
-            <div className="mt-5">
-              <p className="text-sm font-bold">Đã thanh toán cho:</p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {data.participants?.map((participant) => (
-                  <span
-                    className="badge bg-blue-50 text-travel"
-                    key={participant.user_id}
-                  >
-                    {participant.profile.full_name}
-                  </span>
-                ))}
-              </div>
+          <div className="mt-5">
+            <p className="text-sm font-bold">{personal ? "Đã thanh toán cho:" : "Sử dụng bởi:"}</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {data.participants?.map((participant) => (
+                <span
+                  className="badge bg-blue-50 text-travel"
+                  key={participant.user_id}
+                >
+                  {participant.profile.full_name}
+                </span>
+              ))}
             </div>
-          )}
+          </div>
           {data.note && (
             <p className="mt-5 rounded-xl bg-slate-50 p-4">{data.note}</p>
           )}
@@ -100,32 +98,27 @@ export function ExpenseDetailPage() {
         </section>
         <section className="card">
           <h2 className="mb-4 font-bold">
-            {personal ? "Hoàn tiền cho người trả hộ" : "Tác động đến quỹ"}
+            {personal ? "Hoàn tiền cho người trả hộ" : "Mức tiêu thụ từ quỹ chung"}
           </h2>
-          {personal ? (
-            data.splits?.length ? (
-              data.splits.map((split) => (
-                <div
-                  className="mb-3 flex justify-between border-b border-slate-100 pb-3"
-                  key={split.id}
-                >
-                  <div>
-                    <p className="font-semibold">{split.profile.full_name}</p>
-                    <StatusBadge status={split.is_settled ? "paid" : "unpaid"} />
-                  </div>
-                  <b>{currency(split.amount_owed)}</b>
+          {data.splits?.length ? (
+            data.splits.map((split) => (
+              <div
+                className="mb-3 flex justify-between border-b border-slate-100 pb-3"
+                key={split.id}
+              >
+                <div>
+                  <p className="font-semibold">{split.profile.full_name}</p>
+                  {personal && <StatusBadge status={split.is_settled ? "paid" : "unpaid"} />}
                 </div>
-              ))
-            ) : (
-              <p className="text-sm text-slate-500">
-                Bấm "Chia đều cho người đã chọn" để chia đúng danh sách người
-                được trả hộ.
-              </p>
-            )
+                <b>{currency(split.amount_owed)}</b>
+              </div>
+            ))
           ) : (
             <p className="text-sm text-slate-500">
-              Khoản này đã trừ trực tiếp số dư quỹ chung và không tạo công nợ
-              giữa các thành viên.
+              {personal 
+                ? "Bấm 'Chia đều cho người đã chọn' để chia đúng danh sách người được trả hộ."
+                : "Khoản này không ghi nhận chi tiết mức tiêu thụ của từng người."
+              }
             </p>
           )}
         </section>
