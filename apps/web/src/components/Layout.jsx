@@ -1,4 +1,4 @@
-import { Bell, Bot, CalendarDays, ChartPie, CircleDollarSign, Compass, LogOut, Menu, Settings, Users, WalletCards, X, MapPin, MessageSquare, ShoppingBag } from 'lucide-react';
+import { Bell, Bot, CalendarDays, ChartPie, CircleDollarSign, Compass, LogOut, Menu, Settings, Users, WalletCards, X, MapPin, MessageSquare, ShoppingBag, FileText } from 'lucide-react';
 import { useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -9,14 +9,15 @@ import { useRemote } from '../hooks/useRemote';
 const tripItems = [
   ['Tổng quan', '', Compass], ['Lịch trình', 'itinerary', CalendarDays], ['Thành viên', 'members', Users],
   ['Quỹ chung', 'fund', WalletCards], ['Chi tiêu', 'expenses', CircleDollarSign], ['Chia tiền', 'settlements', ChartPie],
-  ['Thống kê', 'finance', ChartPie], ['Nhắc thanh toán', 'reminders', Bell], ['Gợi ý AI', 'ai', Bot],
-  ['Gợi ý địa điểm', 'ai-places', MapPin], ['Dịch vụ OTA', 'ota', ShoppingBag], ['Trò chuyện', 'chat', MessageSquare]
+  ['Thống kê', 'finance', ChartPie], ['Nhắc thanh toán', 'reminders', Bell], 
+  ['Gợi ý AI', 'ai', Bot], ['Gợi ý địa điểm', 'ai-places', MapPin], ['Dịch vụ OTA', 'ota', ShoppingBag], 
+  ['Trò chuyện', 'chat', MessageSquare]
 ];
 
 function SidebarLink({ to, icon: Icon, label, end }) {
-  return <NavLink to={to} end={end} className={({ isActive }) => `group relative flex items-center gap-3 rounded-xl px-4 py-2.5 text-[13px] font-semibold transition-all duration-200 ${isActive ? 'bg-gradient-to-r from-blue-50 to-blue-50/50 text-travel shadow-sm' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'}`}>
+  return <NavLink to={to} end={end} className={({ isActive }) => `group relative flex items-center gap-3 rounded-xl overflow-hidden px-4 py-2.5 text-[13px] font-semibold transition-all duration-200 ${isActive ? 'bg-gradient-to-r from-blue-50 to-blue-50/50 text-travel shadow-sm' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'}`}>
     {({ isActive }) => <>
-      {isActive && <motion.div layoutId="sidebar-active" className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1 rounded-r-full bg-travel" transition={{ type: 'spring', stiffness: 350, damping: 30 }} />}
+      {isActive && <motion.div layoutId="sidebar-active" className="absolute left-0 top-0 bottom-0 my-auto h-6 w-1 rounded-r-full bg-travel" transition={{ type: 'spring', stiffness: 350, damping: 30 }} />}
       <Icon size={18} className={`transition-colors ${isActive ? 'text-travel' : 'text-slate-400 group-hover:text-slate-600'}`} />
       {label}
     </>}

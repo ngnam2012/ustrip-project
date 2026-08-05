@@ -72,12 +72,13 @@ npm run db:push
 
 ### 2. Chạy Backend (Python FastAPI)
 
-Vì Backend được viết bằng Python, bạn cần cài đặt thư viện trước khi chạy (khuyên dùng môi trường ảo `venv`):
+Vì Backend được viết bằng Python (yêu cầu **Python 3.12 trở lên** để tương thích với `google-genai`), bạn cần tạo môi trường ảo `venv` và cài đặt thư viện:
 
 ```bash
 cd server
-python -m venv venv
+py -3.12 -m venv venv     # Hoặc python3.12 -m venv venv
 source venv/bin/activate  # Trên Windows: venv\Scripts\activate
+python -m pip install --upgrade pip
 pip install -r requirements.txt
 uvicorn src.main:socket_app --host 0.0.0.0 --port 5000 --reload
 ```

@@ -17,7 +17,12 @@ async def send_expo_push(notifications: List[Dict[str, Any]]):
     if not notifications:
         return
 
-    user_ids = list(set([n['user_id'] for n in notifications]))
+    # Filter out pre-read notifications (like audit logs for actors)
+    valid_notifications = [n for n in notifications if not n.get('is_read')]
+    if not valid_notifications:
+        return
+
+    user_ids = list(set([n['user_id'] for n in valid_notifications]))
     
     tokens_res = db.table('push_tokens').select('token,user_id').in_('user_id', user_ids).execute()
     tokens = tokens_res.data or []
@@ -26,7 +31,7 @@ async def send_expo_push(notifications: List[Dict[str, Any]]):
         return
 
     notifications_by_user: Dict[str, List[Dict[str, Any]]] = {}
-    for n in notifications:
+    for n in valid_notifications:
         user_id = n['user_id']
         if user_id not in notifications_by_user:
             notifications_by_user[user_id] = []
@@ -100,5 +105,16 @@ async def notify_trip_members(trip_id: str, actor_id: str, type: str, title: str
         "title": title, 
         "message": message
     } for m in members]
+    
+    # ALWAYS inject a notification for the actor to ensure audit logs work even for solo trips
+    # We mark it as read so it doesn't show an unread badge and doesn't trigger push.
+    payloads.append({
+        "user_id": actor_id,
+        "trip_id": trip_id,
+        "type": type,
+        "title": title,
+        "message": message,
+        "is_read": True
+    })
     
     return await notify_users(payloads)
