@@ -432,6 +432,11 @@ function CreateTrip({ route, navigation }) {
     estimated_budget: "",
   });
   const submit = async () => {
+    if (f.start_date && f.end_date) {
+      if (new Date(f.start_date) > new Date(f.end_date)) {
+        return Alert.alert("Lỗi", "Ngày bắt đầu không được sau ngày kết thúc.");
+      }
+    }
     try {
       await api("/trips", { method: "POST", body: f });
       route.params?.refresh?.();
