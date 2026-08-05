@@ -1,6 +1,8 @@
-import { Trash2, Users } from "lucide-react";
+import { Trash2, Users, Pencil } from "lucide-react";
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ErrorBox, Loader, StatusBadge } from "../components/ui";
+import { ExpenseForm } from "../components/ExpenseForm";
 import { useRemote } from "../hooks/useRemote";
 import { api, currency, dateText } from "../lib/api";
 import { Head, sourceLabels } from "./shared";
@@ -9,7 +11,10 @@ export function ExpenseDetailPage() {
   const { tripId, expenseId } = useParams();
   const navigate = useNavigate();
   const { data, loading, error, reload } = useRemote(`/expenses/${expenseId}`);
-  if (loading) return <Loader />;
+  const members = useRemote(`/trips/${tripId}/members`);
+  const [showEditForm, setShowEditForm] = useState(false);
+  
+  if (loading || members.loading) return <Loader />;
   const personal = data.payment_source === "personal";
   return (
     <>
@@ -18,6 +23,13 @@ export function ExpenseDetailPage() {
         title={data?.title}
         action={
           <div className="flex gap-2">
+            <button
+              className="btn-coral text-slate-700 bg-slate-100 hover:bg-slate-200 border-none"
+              onClick={() => setShowEditForm(true)}
+            >
+              <Pencil size={17} />
+              Chỉnh sửa
+            </button>
             {personal && (
               <button
                 className="btn-primary"
@@ -123,6 +135,34 @@ export function ExpenseDetailPage() {
           )}
         </section>
       </div>
+      {showEditForm && (
+        <ExpenseForm
+          tripId={tripId}
+          expenseId={expenseId}
+          members={members.data || []}
+          initialData={{
+            title: data.title,
+            amount: data.amount,
+            category: data.category,
+            payment_source: data.payment_source,
+            paid_by: data.paid_by || "",
+            expense_date: data.expense_date?.slice(0, 10),
+            participants: data.participants?.map(p => p.user_id) || [],
+            split_method: data.split_method || 'equal',
+            exact_splits: data.split_method === 'exact' ? (data.splits || []).reduce((acc, split) => {
+              acc[split.user_id] = split.amount_owed;
+              return acc;
+            }, {}) : {},
+            bill_image_url: data.bill_image_url || "",
+            note: data.note || "",
+          }}
+          onClose={() => setShowEditForm(false)}
+          onSaved={() => {
+            setShowEditForm(false);
+            reload();
+          }}
+        />
+      )}
     </>
   );
 }

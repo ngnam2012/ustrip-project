@@ -142,7 +142,8 @@ async def create_expense(request: Request, expense_in: ExpenseCreate, current_us
                             }).eq('id', sp['id']).execute()
         
     payment_src_text = 'chi từ quỹ chung' if expense.get('payment_source') == 'shared_fund' else 'thành viên trả hộ'
-    await notify_trip_members(trip_id, current_user['id'], 'new_expense', 'Chi tiêu mới', f"{expense['title']}: {expense['amount']} ({payment_src_text})")
+    actor_name = current_user.get('full_name') or 'Một thành viên'
+    await notify_trip_members(trip_id, current_user['id'], 'new_expense', 'Chi tiêu mới', f"{actor_name} đã thêm chi tiêu {expense['title']}: {expense['amount']} ({payment_src_text})")
     
     return expense
 
@@ -206,11 +207,22 @@ async def update_expense(request: Request, expense_in: ExpenseUpdate, current_us
         if splits:
             db.table('expense_splits').insert(splits).execute()
             
+    payment_src_text = 'chi từ quỹ chung' if expense.get('payment_source') == 'shared_fund' else 'thành viên trả hộ'
+    actor_name = current_user.get('full_name') or 'Một thành viên'
+    await notify_trip_members(expense['trip_id'], current_user['id'], 'new_expense', 'Cập nhật chi tiêu', f"{actor_name} đã sửa chi tiêu {expense['title']}: {expense['amount']} ({payment_src_text})")
+    
     return expense
 
 @router.delete("/expenses/{expenseId}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_expense(request: Request, current_user: Dict[str, Any] = Depends(require_expense_member)):
     expense_id = request.path_params.get('expenseId')
+    
+    res = db.table('expenses').select('trip_id, title').eq('id', expense_id).execute()
+    if res.data:
+        ex = res.data[0]
+        actor_name = current_user.get('full_name') or 'Một thành viên'
+        await notify_trip_members(ex['trip_id'], current_user['id'], 'new_expense', 'Xóa chi tiêu', f"{actor_name} đã xóa khoản chi {ex['title']}")
+        
     db.table('expenses').delete().eq('id', expense_id).execute()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
