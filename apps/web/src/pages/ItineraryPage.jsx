@@ -1,6 +1,6 @@
 import { MapPin, Plus } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { Empty, ErrorBox, Loader, Modal } from "../components/ui";
 import { useRemote } from "../hooks/useRemote";
 import { api, currency, dateText } from "../lib/api";
@@ -11,6 +11,7 @@ import { Head } from "./shared";
 
 export function ItineraryPage() {
   const { tripId } = useParams();
+  const navigate = useNavigate();
   const { data, loading, error, reload } = useRemote(
     `/trips/${tripId}/activities`,
   );
@@ -18,6 +19,18 @@ export function ItineraryPage() {
     `/trips/${tripId}/members`,
   );
   const [showForm, setShowForm] = useState(false);
+  const [editingActivity, setEditingActivity] = useState(null);
+
+  const deleteActivity = async (activityId) => {
+    if (!confirm("Xóa hoạt động này?")) return;
+    await api(`/activities/${activityId}`, { method: "DELETE" });
+    toast.success("Đã xóa hoạt động");
+    reload();
+  };
+
+  const editActivity = (activity) => {
+    setEditingActivity(activity);
+  };
   const groups = useMemo(
     () =>
       Object.groupBy
@@ -58,17 +71,24 @@ export function ItineraryPage() {
               date={date}
               items={items}
               tripId={tripId}
+              onEdit={editActivity}
+              onDelete={deleteActivity}
             />
           ))}
         </div>
       )}
-      {showForm && (
+      {(showForm || editingActivity) && (
         <ActivityForm
           tripId={tripId}
           members={members || []}
-          onClose={() => setShowForm(false)}
+          activity={editingActivity}
+          onClose={() => {
+            setShowForm(false);
+            setEditingActivity(null);
+          }}
           onSaved={() => {
             setShowForm(false);
+            setEditingActivity(null);
             reload();
           }}
         />
@@ -77,7 +97,7 @@ export function ItineraryPage() {
   );
 }
 
-function ItineraryDay({ date, items, tripId }) {
+function ItineraryDay({ date, items, tripId, onEdit, onDelete }) {
   const [open, setOpen] = useState(true);
   return (
     <section>
@@ -106,15 +126,19 @@ function ItineraryDay({ date, items, tripId }) {
             className="relative space-y-3 overflow-hidden border-l-2 border-dashed border-blue-200/60 pl-6"
           >
             {items.map((item) => (
-              <Link
-                to={`/trips/${tripId}/activities/${item.id}`}
+              <div
                 key={item.id}
                 className="card relative block border-l-4 border-l-travel/80 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lift hover:border-l-travel"
               >
                 <span className="absolute -left-[32px] top-6 h-3 w-3 rounded-full bg-travel ring-4 ring-blue-50 shadow-sm" />
                 <div className="flex flex-wrap justify-between gap-3">
                   <div>
-                    <h3 className="font-bold text-ink">{item.title}</h3>
+                    <Link
+                      to={`/trips/${tripId}/activities/${item.id}`}
+                      className="font-bold text-ink hover:text-travel"
+                    >
+                      {item.title}
+                    </Link>
                     <p className="mt-2 flex items-center gap-1.5 text-sm text-slate-500">
                       <MapPin size={14} />
                       {item.location || "Chưa đặt địa điểm"}
@@ -130,7 +154,23 @@ function ItineraryDay({ date, items, tripId }) {
                     </p>
                   </div>
                 </div>
-              </Link>
+                <div className="mt-4 flex justify-end gap-3">
+                  <button
+                    type="button"
+                    className="text-sm font-semibold text-blue-600 transition hover:text-blue-800"
+                    onClick={() => onEdit(item)}
+                  >
+                    Chỉnh sửa
+                  </button>
+                  <button
+                    type="button"
+                    className="text-sm font-semibold text-red-500 transition hover:text-red-700"
+                    onClick={() => onDelete(item.id)}
+                  >
+                    Xóa
+                  </button>
+                </div>
+              </div>
             ))}
           </motion.div>
         )}
@@ -139,7 +179,7 @@ function ItineraryDay({ date, items, tripId }) {
   );
 }
 
-function ActivityForm({ tripId, members = [], onClose, onSaved }) {
+function ActivityForm({ tripId, members = [], activity, onClose, onSaved }) {
   const [formData, setFormData] = useState({
     title: "",
     start_datetime: "",
@@ -157,13 +197,32 @@ function ActivityForm({ tripId, members = [], onClose, onSaved }) {
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
+    if (activity) {
+      setFormData({
+        title: activity.title || "",
+        start_datetime: `${activity.activity_date || ""}T${activity.start_time?.slice(0, 5) || "00:00"}`,
+        end_datetime: `${activity.activity_date || ""}T${activity.end_time?.slice(0, 5) || "00:00"}`,
+        location: activity.location || "",
+        location_name: activity.location_name || activity.location || "",
+        address: activity.address || "",
+        latitude: activity.latitude || null,
+        longitude: activity.longitude || null,
+        map_provider: activity.map_provider || "openstreetmap",
+        estimated_cost: activity.estimated_cost
+          ? String(activity.estimated_cost).replace(/\B(?=(\d{3})+(?!\d))/g, ".")
+          : "",
+        participants: activity.participants?.map((p) => p.user_id) || members.map((member) => member.user_id),
+        notes: activity.notes || "",
+      });
+      return;
+    }
     if (members?.length && !formData.participants.length) {
       setFormData((prev) => ({
         ...prev,
         participants: members.map((member) => member.user_id),
       }));
     }
-  }, [members]);
+  }, [activity, members]);
 
   const formatMoney = (value) => {
     const digits = String(value || "").replace(/\D/g, "");
@@ -175,8 +234,8 @@ function ActivityForm({ tripId, members = [], onClose, onSaved }) {
     try {
       const startDate = formData.start_datetime.split("T");
       const endDate = formData.end_datetime.split("T");
-      await api(`/trips/${tripId}/activities`, {
-        method: "POST",
+      await api(activity ? `/activities/${activity.id}` : `/trips/${tripId}/activities`, {
+        method: activity ? "PATCH" : "POST",
         body: {
           title: formData.title,
           activity_date: startDate[0] || "",
@@ -193,7 +252,7 @@ function ActivityForm({ tripId, members = [], onClose, onSaved }) {
           participants: formData.participants,
         },
       });
-      toast.success("Đã thêm hoạt động");
+      toast.success(activity ? "Đã cập nhật hoạt động" : "Đã thêm hoạt động");
       onSaved();
     } catch (err) {
       setErrorMessage(err.message);
