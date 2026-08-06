@@ -7,3 +7,4 @@
 -- ============================================================
 
 ALTER TABLE fund_contributions DROP COLUMN IF EXISTS contributed_at;
+ 

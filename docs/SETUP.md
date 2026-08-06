@@ -13,11 +13,17 @@ Tài liệu này hướng dẫn cách cài đặt và chạy toàn bộ hệ th�
 ## 2. Cài Đặt Cơ Sở Dữ Liệu (Database Setup)
 Dự án sử dụng PostgreSQL thông qua Supabase.
 1. Tạo một Project mới trên Supabase.
-2. Mở tab **SQL Editor**.
-3. Mở file `database/schema.sql` trong mã nguồn và chạy toàn bộ nội dung để khởi tạo các bảng.
-4. Chạy tiếp các file trong `database/migrations/` (nếu có cập nhật mới).
-5. (Tuỳ chọn) Chạy file `database/seed_new_users.sql` để tạo dữ liệu giả lập.
-6. Vào **Project Settings -> API** để lấy `SUPABASE_URL` và `SUPABASE_SERVICE_ROLE_KEY`.
+2. Vào **Project Settings → API** để lấy `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`.
+3. Vào **Project Settings → Database → Connection string (URI)** để lấy `DATABASE_URL`. Thay `[YOUR-PASSWORD]` bằng mật khẩu DB.
+4. Điền vào `server/.env` (xem Bước 3), rồi chạy lệnh sau tại thư mục gốc:
+   ```bash
+   npm run db:push
+   ```
+   Lệnh này tự động chạy schema + migrations và tracking các migration đã apply (idempotent).
+5. (Tuỳ chọn) Seed dữ liệu mẫu:
+   ```bash
+   npm run db:push -- --seed
+   ```
 
 ## 3. Cài Đặt Backend (FastAPI Server)
 1. Mở terminal, đi vào thư mục server:
@@ -28,22 +34,28 @@ Dự án sử dụng PostgreSQL thông qua Supabase.
    ```bash
    pip install -r requirements.txt
    ```
-3. Tạo file `.env` từ `.env.example` (hoặc tạo mới) với nội dung:
+3. Tạo file `.env` từ `.env.example`:
+   ```bash
+   cp .env.example .env    # macOS/Linux
+   copy .env.example .env  # Windows
+   ```
+   Nội dung cần điền vào `server/.env`:
    ```env
-   # .env
    PORT=5000
    CLIENT_URL=http://localhost:5173
-   MOBILE_CLIENT_URL=exp://192.168.x.x:8081
-   JWT_SECRET=your_super_secret_key
+   MOBILE_CLIENT_URL=exp://localhost:8081
    SUPABASE_URL=https://your-project.supabase.co
-   SUPABASE_KEY=your_supabase_service_role_key
+   SUPABASE_ANON_KEY=your_anon_key
+   SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+   DATABASE_URL=postgresql://postgres.xxx:password@aws-x.pooler.supabase.com:6543/postgres
+   JWT_SECRET=any_random_string_32_chars
+   JWT_EXPIRES_IN=7d
    GEMINI_API_KEY=your_gemini_api_key
    CLOUDINARY_CLOUD_NAME=your_cloud_name
    CLOUDINARY_API_KEY=your_api_key
    CLOUDINARY_API_SECRET=your_api_secret
-   MOMO_PARTNER_CODE=your_momo_code
-   MOMO_ACCESS_KEY=your_momo_access
-   MOMO_SECRET_KEY=your_momo_secret
+   CLOUDINARY_FOLDER=ustrip
+   MOMO_ENV=mock
    ```
 4. Chạy server (sử dụng Uvicorn):
    ```bash
@@ -63,7 +75,7 @@ Dự án sử dụng PostgreSQL thông qua Supabase.
    ```
 3. Tạo file `.env` trong `apps/web`:
    ```env
-   VITE_API_URL=http://localhost:5000
+   VITE_API_URL=http://localhost:5000/api
    ```
 4. Chạy Web:
    ```bash
@@ -99,6 +111,8 @@ npm run dev
 ```
 
 ## 7. Troubleshooting (Lỗi Thường Gặp)
-- **Lỗi CORS trên Web**: Đảm bảo cổng chạy web của bạn (thường là 5173) khớp với `CLIENT_URL` trong Backend `.env`.
-- **Mobile không kết nối được Backend**: Đảm bảo điện thoại và máy tính cùng chung 1 mạng Wi-Fi và bạn đã nhập đúng địa chỉ IP máy tính vào `.env` của Mobile. Tắt tường lửa (Firewall) nếu cần.
-- **Không gửi được tin nhắn chat**: Đảm bảo `socket_app` đang chạy (Socket.IO port là port chung của FastAPI server - 5000).
+- **`type "trip_role" already exists`**: migrate.js mới đã fix — chạy lại `npm run db:push`.
+- **`DATABASE_URL chưa được thiết lập`**: Kiểm tra `server/.env` có đúng tên key và không bị dòng trống đầu file.
+- **Lỗi CORS trên Web**: Đảm bảo `CLIENT_URL=http://localhost:5173` trong `server/.env`.
+- **Mobile không kết nối được Backend**: Điện thoại và máy tính phải cùng Wi-Fi. Điền đúng IPv4 LAN vào `EXPO_PUBLIC_API_URL` trong `apps/mobile/.env`.
+- **Không gửi được tin nhắn chat**: Đảm bảo server đang chạy trên port 5000 (Socket.IO dùng cùng port với FastAPI).
