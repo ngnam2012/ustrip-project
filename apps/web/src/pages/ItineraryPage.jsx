@@ -337,6 +337,7 @@ function ItineraryDay({ date, items, tripId, onEdit, onDelete, onMove, moving })
   );
 }
 
+<<<<<<< HEAD
 function DraggableActivity({ item, tripId, onEdit, onDelete, onMove, moving }) {
   const draggable = hasValidDuration(item) && !moving;
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
