@@ -54,16 +54,23 @@ export function AiPage() {
         const dateString = activityDate.toISOString().split("T")[0];
 
         for (const activity of dayData.activities) {
-          const startStr = activity.time || "09:00";
-          const [h, m] = startStr.split(":");
-          const startHour = parseInt(h || "09", 10);
+          let hStr = "09", mStr = "00";
+          if (activity.time) {
+            const match = activity.time.match(/(\d{1,2}):(\d{2})/);
+            if (match) {
+              hStr = match[1].padStart(2, "0");
+              mStr = match[2];
+            }
+          }
+          const startStr = `${hStr}:${mStr}:00`;
+          let startHour = parseInt(hStr, 10);
           let endHour = startHour + 1;
-          let endMinute = m || "00";
+          let endMinute = mStr;
           if (endHour > 23) {
             endHour = 23;
             endMinute = "59";
           }
-          const finalEndTime = `${String(endHour).padStart(2, "0")}:${endMinute}`;
+          const finalEndTime = `${String(endHour).padStart(2, "0")}:${endMinute}:00`;
 
           try {
             await api(`/trips/${tripId}/activities`, {

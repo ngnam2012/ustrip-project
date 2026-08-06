@@ -1875,6 +1875,7 @@ function AI({ route, navigation }) {
     if (!result || !trip.start_date)
       return Alert.alert("Lỗi", "Chuyến đi chưa có ngày bắt đầu.");
     setBusy(true);
+
     try {
       const startDate = new Date(trip.start_date);
       for (const day of result) {
@@ -1882,13 +1883,31 @@ function AI({ route, navigation }) {
         actDate.setDate(startDate.getDate() + (day.day - 1));
         const dateStr = actDate.toISOString().split("T")[0];
         for (const act of day.activities) {
+          let hStr = "09", mStr = "00";
+          if (act.time) {
+            const match = act.time.match(/(\d{1,2}):(\d{2})/);
+            if (match) {
+              hStr = match[1].padStart(2, "0");
+              mStr = match[2];
+            }
+          }
+          const startStr = `${hStr}:${mStr}:00`;
+          let startHour = parseInt(hStr, 10);
+          let endHour = startHour + 1;
+          let endMinute = mStr;
+          if (endHour > 23) {
+            endHour = 23;
+            endMinute = "59";
+          }
+          const finalEndTime = `${String(endHour).padStart(2, "0")}:${endMinute}:00`;
+
           await api(`/trips/${trip.id}/activities`, {
             method: "POST",
             body: {
               title: act.title,
               activity_date: dateStr,
-              start_time: act.time || "09:00",
-              end_time: "12:00",
+              start_time: startStr,
+              end_time: finalEndTime,
               location: act.location,
               latitude: act.latitude,
               longitude: act.longitude,
