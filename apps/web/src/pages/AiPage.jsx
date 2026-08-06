@@ -54,20 +54,35 @@ export function AiPage() {
         const dateString = activityDate.toISOString().split("T")[0];
 
         for (const activity of dayData.activities) {
-          await api(`/trips/${tripId}/activities`, {
-            method: "POST",
-            body: {
-              title: activity.title,
-              activity_date: dateString,
-              start_time: activity.time || "09:00",
-              end_time: "12:00",
-              location: activity.location,
-              latitude: activity.latitude,
-              longitude: activity.longitude,
-              description: activity.description,
-              estimated_cost: activity.estimated_cost || 0,
-            },
-          });
+          const startStr = activity.time || "09:00";
+          const [h, m] = startStr.split(":");
+          const startHour = parseInt(h || "09", 10);
+          let endHour = startHour + 1;
+          let endMinute = m || "00";
+          if (endHour > 23) {
+            endHour = 23;
+            endMinute = "59";
+          }
+          const finalEndTime = `${String(endHour).padStart(2, "0")}:${endMinute}`;
+
+          try {
+            await api(`/trips/${tripId}/activities`, {
+              method: "POST",
+              body: {
+                title: activity.title,
+                activity_date: dateString,
+                start_time: startStr,
+                end_time: finalEndTime,
+                location: activity.location,
+                latitude: activity.latitude,
+                longitude: activity.longitude,
+                description: activity.description,
+                estimated_cost: activity.estimated_cost || 0,
+              },
+            });
+          } catch (e) {
+            console.warn("Failed to add AI activity:", activity.title, e);
+          }
         }
       }
       toast.success("Đã thêm vào lịch trình!");

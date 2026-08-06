@@ -55,17 +55,23 @@ export function ItineraryPage() {
   const [movePicker, setMovePicker] = useState(null);
   const [conflict, setConflict] = useState(null);
   const [moving, setMoving] = useState(false);
+  const [activityToDelete, setActivityToDelete] = useState(null);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 220, tolerance: 8 } }),
     useSensor(KeyboardSensor),
   );
 
-  const deleteActivity = async (activityId) => {
-    if (!confirm("Xóa hoạt động này?")) return;
-    await api(`/activities/${activityId}`, { method: "DELETE" });
-    toast.success("Đã xóa hoạt động");
-    reload();
+  const confirmDelete = async () => {
+    if (!activityToDelete) return;
+    try {
+      await api(`/activities/${activityToDelete.original_id || activityToDelete.id}`, { method: "DELETE" });
+      toast.success("Đã xóa hoạt động");
+      setActivityToDelete(null);
+      reload();
+    } catch (err) {
+      toast.error(err.message);
+    }
   };
 
   const editActivity = (activity) => {
@@ -217,7 +223,7 @@ export function ItineraryPage() {
                 items={groups[date] || []}
                 tripId={tripId}
                 onEdit={editActivity}
-                onDelete={deleteActivity}
+                onDelete={setActivityToDelete}
                 onMove={(activity) => setMovePicker({ activity, sourceDate: date })}
                 moving={moving}
               />
@@ -270,6 +276,15 @@ export function ItineraryPage() {
             suggestion.start_time?.slice(0, 5),
           )}
         />
+      )}
+      {activityToDelete && (
+        <Modal title="Xác nhận xóa" onClose={() => setActivityToDelete(null)}>
+          <p className="mb-6 text-sm text-slate-600">Bạn có chắc chắn muốn xóa hoạt động <b className="text-ink">{activityToDelete.title}</b> không?</p>
+          <div className="flex justify-end gap-3">
+            <button className="btn-secondary" onClick={() => setActivityToDelete(null)}>Hủy</button>
+            <button className="btn-coral" onClick={confirmDelete}>Xóa hoạt động</button>
+          </div>
+        </Modal>
       )}
     </>
   );
@@ -365,7 +380,7 @@ function DraggableActivity({ item, tripId, onEdit, onDelete, onMove, moving }) {
     <div className="mt-4 flex flex-wrap justify-end gap-3">
       <button type="button" disabled={!draggable} className="flex items-center gap-1 text-sm font-semibold text-violet-600 transition hover:text-violet-800 disabled:cursor-not-allowed disabled:opacity-40" onClick={() => onMove(item)}><MoveRight size={15} />Di chuyển</button>
       <button type="button" className="text-sm font-semibold text-blue-600 transition hover:text-blue-800" onClick={() => onEdit(item)}>Chỉnh sửa</button>
-      <button type="button" className="text-sm font-semibold text-red-500 transition hover:text-red-700" onClick={() => onDelete(item.id)}>Xóa</button>
+      <button type="button" className="text-sm font-semibold text-red-500 transition hover:text-red-700" onClick={() => onDelete(item)}>Xóa</button>
     </div>
   </div>;
 }
