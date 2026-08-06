@@ -41,9 +41,3 @@ class RespondInvitationRequest(BaseModel):
 class ShareTripRequest(BaseModel):
     visibility: Literal['private', 'link', 'public']
 
-class TripRatingRequest(BaseModel):
-    rating: int = Field(..., ge=1, le=5)
-
-class TripCommentRequest(BaseModel):
-    content: str = Field(..., min_length=1, max_length=2000)
-    parent_id: Optional[str] = None

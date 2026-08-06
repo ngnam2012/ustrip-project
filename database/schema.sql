@@ -1,5 +1,16 @@
+-- ============================================================
+-- UStrip — Complete Database Schema (Source of Truth)
+-- ============================================================
+-- This file creates a fresh database from scratch.
+-- Migrations (002–009) are for upgrading an existing installation.
+-- Last updated: 2026-08 (post-refactor cleanup)
+-- ============================================================
+
 create extension if not exists "pgcrypto";
 
+-- ============================================================
+-- Enum Types
+-- ============================================================
 create type trip_role as enum ('owner', 'member');
 create type contribution_status as enum ('paid', 'partial', 'unpaid');
 create type expense_category as enum ('food', 'transport', 'hotel', 'ticket', 'shopping', 'other');
@@ -8,6 +19,10 @@ create type split_method as enum ('equal');
 create type notification_type as enum ('contribution_reminder', 'new_expense', 'itinerary_update', 'member_added');
 create type payment_status as enum ('pending', 'success', 'failed', 'cancelled', 'expired');
 create type invitation_status as enum ('pending', 'accepted', 'declined');
+
+-- ============================================================
+-- Core Tables
+-- ============================================================
 
 create table profiles (
   id uuid primary key default gen_random_uuid(),
@@ -29,6 +44,7 @@ create table trips (
   estimated_budget numeric(14,2) not null default 0 check (estimated_budget >= 0),
   description text,
   cover_image_url text,
+  visibility text not null default 'private' check (visibility in ('private', 'link', 'public')),
   created_by uuid not null references profiles(id) on delete cascade,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -40,6 +56,7 @@ create table trip_members (
   trip_id uuid not null references trips(id) on delete cascade,
   user_id uuid not null references profiles(id) on delete cascade,
   role trip_role not null default 'member',
+  -- contribution tracking (denormalized, refreshed by fund_service)
   contribution_status contribution_status not null default 'unpaid',
   paid_amount numeric(14,2) not null default 0 check (paid_amount >= 0),
   remaining_amount numeric(14,2) not null default 0 check (remaining_amount >= 0),
@@ -48,6 +65,10 @@ create table trip_members (
   updated_at timestamptz not null default now(),
   unique(trip_id, user_id)
 );
+
+-- ============================================================
+-- Itinerary
+-- ============================================================
 
 create table itinerary_activities (
   id uuid primary key default gen_random_uuid(),
@@ -79,6 +100,11 @@ create table activity_participants (
   primary key(activity_id, user_id)
 );
 
+-- ============================================================
+-- Fund & Contributions
+-- ============================================================
+
+-- One shared fund per trip — stores the target collection amount
 create table shared_funds (
   id uuid primary key default gen_random_uuid(),
   trip_id uuid not null unique references trips(id) on delete cascade,
@@ -87,6 +113,7 @@ create table shared_funds (
   updated_at timestamptz not null default now()
 );
 
+-- Individual contribution records (manual or MoMo)
 create table fund_contributions (
   id uuid primary key default gen_random_uuid(),
   trip_id uuid not null references trips(id) on delete cascade,
@@ -97,11 +124,11 @@ create table fund_contributions (
   payment_method text not null default 'manual' check (payment_method in ('manual', 'momo')),
   payment_status payment_status not null default 'success',
   paid_at timestamptz,
-  contributed_at timestamptz not null default now(),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
+-- MoMo (and future gateway) payment records
 create table payments (
   id uuid primary key default gen_random_uuid(),
   trip_id uuid not null references trips(id) on delete cascade,
@@ -124,8 +151,13 @@ create table payments (
   updated_at timestamptz not null default now()
 );
 
+-- Back-link from contribution to payment (circular ref — added after payments)
 alter table fund_contributions
   add column payment_id uuid unique references payments(id) on delete set null;
+
+-- ============================================================
+-- Expenses & Splits
+-- ============================================================
 
 create table expenses (
   id uuid primary key default gen_random_uuid(),
@@ -148,6 +180,7 @@ create table expenses (
   )
 );
 
+-- Who this expense was paid for (used to compute splits)
 create table expense_participants (
   expense_id uuid not null references expenses(id) on delete cascade,
   user_id uuid not null references profiles(id) on delete cascade,
@@ -155,6 +188,7 @@ create table expense_participants (
   primary key(expense_id, user_id)
 );
 
+-- Per-person debt breakdown for each expense
 create table expense_splits (
   id uuid primary key default gen_random_uuid(),
   expense_id uuid not null references expenses(id) on delete cascade,
@@ -166,6 +200,23 @@ create table expense_splits (
   updated_at timestamptz not null default now(),
   unique(expense_id, user_id)
 );
+
+-- ============================================================
+-- Messaging
+-- ============================================================
+
+create table trip_messages (
+  id uuid primary key default gen_random_uuid(),
+  trip_id uuid not null references trips(id) on delete cascade,
+  user_id uuid not null references profiles(id) on delete cascade,
+  content text not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+-- ============================================================
+-- Notifications & Push
+-- ============================================================
 
 create table notifications (
   id uuid primary key default gen_random_uuid(),
@@ -187,6 +238,10 @@ create table push_tokens (
   updated_at timestamptz not null default now()
 );
 
+-- ============================================================
+-- Reminders
+-- ============================================================
+
 create table reminders (
   id uuid primary key default gen_random_uuid(),
   trip_id uuid not null references trips(id) on delete cascade,
@@ -198,22 +253,38 @@ create table reminders (
   updated_at timestamptz not null default now()
 );
 
+-- ============================================================
+-- Indexes
+-- ============================================================
+
 create index idx_trips_created_by on trips(created_by);
+create index idx_trips_visibility on trips(visibility);
+create index idx_trips_public_created on trips(created_at desc) where visibility = 'public';
+
 create index idx_trip_members_user on trip_members(user_id);
 create index idx_trip_members_trip on trip_members(trip_id);
 create index idx_trip_members_invitation_status on trip_members(user_id, invitation_status);
+
 create index idx_activities_trip_date on itinerary_activities(trip_id, activity_date);
 create index idx_activities_trip_end_date on itinerary_activities(trip_id, end_date);
+
 create index idx_contributions_trip on fund_contributions(trip_id);
 create index idx_payments_trip_status on payments(trip_id, status);
 create index idx_payments_member on payments(member_id, created_at desc);
 create index idx_payments_order on payments(order_id);
+
 create index idx_expenses_trip_date on expenses(trip_id, expense_date);
 create index idx_expenses_trip_source on expenses(trip_id, payment_source);
 create index idx_expense_splits_user on expense_splits(user_id, is_settled);
+
+create index idx_trip_messages_trip on trip_messages(trip_id, created_at);
 create index idx_notifications_user on notifications(user_id, is_read, created_at desc);
 create index idx_push_tokens_user on push_tokens(user_id);
 create index idx_reminders_trip on reminders(trip_id);
+
+-- ============================================================
+-- updated_at Trigger
+-- ============================================================
 
 create or replace function set_updated_at() returns trigger as $$
 begin
@@ -223,29 +294,42 @@ end;
 $$ language plpgsql;
 
 do $$
-declare table_name text;
+declare tbl text;
 begin
-  foreach table_name in array array[
-    'profiles','trips','trip_members','itinerary_activities','shared_funds',
-    'fund_contributions','payments','expenses','expense_splits','notifications','push_tokens','reminders'
+  foreach tbl in array array[
+    'profiles','trips','trip_members',
+    'itinerary_activities',
+    'shared_funds','fund_contributions','payments',
+    'expenses','expense_splits',
+    'trip_messages',
+    'notifications','push_tokens','reminders'
   ] loop
-    execute format('create trigger set_%s_updated_at before update on %s for each row execute function set_updated_at()', table_name, table_name);
+    execute format(
+      'create trigger set_%s_updated_at before update on %s for each row execute function set_updated_at()',
+      tbl, tbl
+    );
   end loop;
 end $$;
 
--- Clients never query Supabase directly. With RLS enabled and no anon
--- policies, all data access is forced through the authenticated Express API.
-alter table profiles enable row level security;
-alter table trips enable row level security;
-alter table trip_members enable row level security;
-alter table itinerary_activities enable row level security;
+-- ============================================================
+-- Row Level Security
+-- All data access is via authenticated Express/FastAPI service role.
+-- RLS is enabled on every table but no anon policies are defined,
+-- so direct client access is blocked.
+-- ============================================================
+
+alter table profiles              enable row level security;
+alter table trips                 enable row level security;
+alter table trip_members          enable row level security;
+alter table itinerary_activities  enable row level security;
 alter table activity_participants enable row level security;
-alter table shared_funds enable row level security;
-alter table fund_contributions enable row level security;
-alter table payments enable row level security;
-alter table expenses enable row level security;
-alter table expense_participants enable row level security;
-alter table expense_splits enable row level security;
-alter table notifications enable row level security;
-alter table push_tokens enable row level security;
-alter table reminders enable row level security;
+alter table shared_funds          enable row level security;
+alter table fund_contributions    enable row level security;
+alter table payments              enable row level security;
+alter table expenses              enable row level security;
+alter table expense_participants  enable row level security;
+alter table expense_splits        enable row level security;
+alter table trip_messages         enable row level security;
+alter table notifications         enable row level security;
+alter table push_tokens           enable row level security;
+alter table reminders             enable row level security;

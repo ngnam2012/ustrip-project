@@ -19,7 +19,11 @@ export async function api(path, options = {}) {
     if (!msg && data.detail) {
       msg = typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail);
     }
-    throw new Error(msg || 'Không thể kết nối máy chủ');
+    const error = new Error(msg || 'Không thể kết nối máy chủ');
+    error.code = data.code;
+    error.data = data;
+    error.status = response.status;
+    throw error;
   }
   return data;
 }

@@ -1,10 +1,61 @@
 from fastapi import APIRouter, Depends, Request
 from typing import Any, Dict
-from src.dependencies.auth import get_trip_member
+from src.dependencies.auth import get_current_user, get_trip_member
 from src.config.db import db
 from src.utils.api import ApiError
+from src.utils.debt_summary import build_debt_dashboard
 
 router = APIRouter(tags=["dashboard"])
+
+@router.get("/dashboard/debts")
+async def debt_dashboard(current_user: Dict[str, Any] = Depends(get_current_user)):
+    memberships_res = db.table('trip_members') \
+        .select('trip_id,role,trip:trips(id,name,destination)') \
+        .eq('user_id', current_user['id']) \
+        .eq('invitation_status', 'accepted') \
+        .execute()
+    memberships = memberships_res.data or []
+    trip_ids = [membership['trip_id'] for membership in memberships if membership.get('trip_id')]
+
+    if not trip_ids:
+        return build_debt_dashboard(current_user['id'], [], [], [], {})
+
+    contributions_res = db.table('fund_contributions') \
+        .select('trip_id,user_id,amount') \
+        .in_('trip_id', trip_ids) \
+        .eq('user_id', current_user['id']) \
+        .eq('payment_status', 'success') \
+        .execute()
+    expenses_res = db.table('expenses') \
+        .select('id,trip_id,payment_source,paid_by,splits:expense_splits(user_id,amount_owed,is_settled)') \
+        .in_('trip_id', trip_ids) \
+        .execute()
+    expenses = expenses_res.data or []
+
+    profile_ids = set()
+    for expense in expenses:
+        payer_id = expense.get('paid_by')
+        if payer_id:
+            profile_ids.add(payer_id)
+        for split in expense.get('splits') or []:
+            if split.get('user_id'):
+                profile_ids.add(split['user_id'])
+
+    profiles = {}
+    if profile_ids:
+        profiles_res = db.table('profiles') \
+            .select('id,full_name,avatar_url') \
+            .in_('id', list(profile_ids)) \
+            .execute()
+        profiles = {profile['id']: profile for profile in (profiles_res.data or [])}
+
+    return build_debt_dashboard(
+        current_user['id'],
+        memberships,
+        contributions_res.data or [],
+        expenses,
+        profiles,
+    )
 
 @router.get("/trips/{tripId}/financial-summary")
 async def financial_summary(request: Request, current_user: Dict[str, Any] = Depends(get_trip_member)):

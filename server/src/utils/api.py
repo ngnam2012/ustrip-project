@@ -2,8 +2,10 @@ from fastapi import HTTPException
 from typing import Any, Dict, List, TypeVar
 
 class ApiError(HTTPException):
-    def __init__(self, status: int, message: str):
+    def __init__(self, status: int, message: str, code: str = None, data: Dict[str, Any] = None):
         super().__init__(status_code=status, detail=message)
+        self.code = code
+        self.data = data or {}
 
 def unwrap(result: Any) -> Any:
     # In python supabase client, currently `result.data` is returned directly for successful queries in v2, 

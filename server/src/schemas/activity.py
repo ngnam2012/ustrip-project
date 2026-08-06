@@ -37,3 +37,8 @@ class ActivityUpdate(BaseModel):
     estimated_cost: Optional[float] = None
     notes: Optional[str] = None
     participants: Optional[List[str]] = None
+
+class ActivityMoveRequest(BaseModel):
+    source_occurrence_date: date
+    target_occurrence_date: date
+    start_time_override: Optional[time] = None

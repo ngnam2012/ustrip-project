@@ -28,7 +28,11 @@ export async function api(path, options = {}) {
       if (typeof data.detail === 'string') errMsg = data.detail;
       else if (Array.isArray(data.detail)) errMsg = data.detail.map(e => (e.msg.includes('characters') ? 'Mật khẩu phải có ít nhất 8 ký tự' : e.msg)).join(', ');
     }
-    throw new Error(errMsg || 'Lỗi hệ thống hoặc sai định dạng dữ liệu (422)');
+    const error = new Error(errMsg || 'Lỗi hệ thống hoặc sai định dạng dữ liệu (422)');
+    error.code = data.code;
+    error.data = data;
+    error.status = response.status;
+    throw error;
   }
   return data;
 }

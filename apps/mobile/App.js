@@ -358,15 +358,91 @@ function AuthScreen({ route, navigation }) {
   );
 }
 
+function MobileDebtDashboard({ data, loading, error, navigation }) {
+  if (loading) {
+    return <View style={{ marginTop: SP.lg }}>
+      {[0, 1].map((item) => <View key={item} style={[S.card, { height: 92, backgroundColor: C.surfaceContainer }]} />)}
+    </View>;
+  }
+  if (error) {
+    return <View style={[S.card, { marginTop: SP.lg, backgroundColor: C.redLight }]}>
+      <Text style={{ fontFamily: "Inter_600SemiBold", color: C.red }}>Không tải được sổ công nợ</Text>
+      <Text style={[S.caption, { marginTop: 4, color: C.red }]}>{error}</Text>
+    </View>;
+  }
+  if (!data) return null;
+
+  const summaryCards = [
+    ["Mình nợ quỹ", data.summary.fund_i_owe, C.red, C.redLight, "wallet-outline"],
+    ["Quỹ nợ mình", data.summary.fund_owed_to_me, C.mint, C.mintLight, "wallet-outline"],
+    ["Mình nợ người khác", data.summary.personal_i_owe, C.red, C.redLight, "arrow-up-outline"],
+    ["Người khác nợ mình", data.summary.personal_owed_to_me, C.mint, C.mintLight, "arrow-down-outline"],
+  ];
+
+  return <View style={{ marginTop: SP.lg }}>
+    <View style={[S.between, { marginBottom: SP.md, alignItems: "flex-end" }]}>
+      <View style={{ flex: 1 }}>
+        <Text style={S.label}>SỔ CÔNG NỢ</Text>
+        <Text style={[S.h2, { fontSize: 20 }]}>Tài chính của bạn</Text>
+      </View>
+      <View style={{ borderRadius: R.full, paddingHorizontal: 10, paddingVertical: 6, backgroundColor: data.summary.personal_net >= 0 ? C.mintLight : C.redLight }}>
+        <Text style={{ fontFamily: "Inter_700Bold", fontSize: 11, color: data.summary.personal_net >= 0 ? C.mint : C.red }}>
+          Ròng {data.summary.personal_net >= 0 ? "+" : "−"}{money(Math.abs(data.summary.personal_net))}
+        </Text>
+      </View>
+    </View>
+
+    <View style={{ flexDirection: "row", flexWrap: "wrap", marginHorizontal: -4 }}>
+      {summaryCards.map(([label, value, color, backgroundColor, icon]) => <View key={label} style={{ width: "50%", paddingHorizontal: 4 }}>
+        <View style={[S.card, { minHeight: 118, padding: 14 }]}>
+          <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor, alignItems: "center", justifyContent: "center" }}>
+            <Ionicons name={icon} size={18} color={color} />
+          </View>
+          <Text style={[S.caption, { marginTop: 10 }]}>{label}</Text>
+          <Text style={{ marginTop: 3, fontFamily: "Inter_800ExtraBold", fontSize: 17, color }}>{money(value)}</Text>
+        </View>
+      </View>)}
+    </View>
+
+    <Text style={[S.h2, { fontSize: 16, marginTop: SP.sm, marginBottom: SP.sm }]}>Quỹ theo chuyến</Text>
+    {data.fund_by_trip.length === 0 ? <View style={S.card}><Text style={[S.body, { textAlign: "center", color: C.subtle }]}>Chưa có chuyến đi để tính công nợ quỹ.</Text></View> : data.fund_by_trip.map((item) => <Pressable key={item.trip.id} onPress={() => navigation.navigate("Fund", { trip: item.trip })} style={({ pressed }) => [S.card, { opacity: pressed ? 0.75 : 1 }]}>
+      <View style={S.between}>
+        <View style={{ flex: 1, paddingRight: SP.sm }}><Text style={[S.h2, { fontSize: 15 }]} numberOfLines={1}>{item.trip.name}</Text><Text style={S.caption}>Đã góp {money(item.contributed)} · Đã dùng {money(item.consumed)}</Text></View>
+        <View style={{ alignItems: "flex-end" }}><Text style={{ fontFamily: "Inter_700Bold", fontSize: 13, color: item.direction === "i_owe" ? C.red : item.direction === "owed_to_me" ? C.mint : C.subtle }}>{item.direction === "i_owe" ? "Nợ quỹ " : item.direction === "owed_to_me" ? "Quỹ nợ " : "Cân bằng"}{item.direction === "settled" ? "" : money(item.amount)}</Text><Text style={S.caption}>Xem quỹ →</Text></View>
+      </View>
+    </Pressable>)}
+
+    <Text style={[S.h2, { fontSize: 16, marginTop: SP.sm, marginBottom: SP.sm }]}>Số ròng theo người</Text>
+    {data.counterparty_net.length === 0 ? <View style={S.card}><Text style={[S.body, { textAlign: "center", color: C.subtle }]}>Bạn chưa có công nợ cá nhân.</Text></View> : data.counterparty_net.map((item) => <View key={item.profile.id} style={S.card}>
+      <View style={S.between}><Text style={[S.h2, { flex: 1, fontSize: 15 }]} numberOfLines={1}>{item.profile.full_name}</Text><Text style={{ fontFamily: "Inter_700Bold", fontSize: 13, color: item.direction === "i_owe" ? C.red : item.direction === "owed_to_me" ? C.mint : C.subtle }}>{item.direction === "i_owe" ? "Bạn nợ " : item.direction === "owed_to_me" ? "Nợ bạn " : "Đã cân bằng"}{item.direction === "settled" ? "" : money(item.amount)}</Text></View>
+    </View>)}
+
+    <Text style={[S.h2, { fontSize: 16, marginTop: SP.sm, marginBottom: SP.sm }]}>Theo từng chuyến</Text>
+    {data.personal_by_trip.length === 0 ? <View style={S.card}><Text style={[S.body, { textAlign: "center", color: C.subtle }]}>Tuyệt vời! Không có công nợ cá nhân đang mở.</Text></View> : data.personal_by_trip.map((item, index) => <Pressable key={`${item.trip.id}-${item.counterparty.id}-${item.direction}-${index}`} onPress={() => navigation.navigate("Settlements", { trip: item.trip })} style={({ pressed }) => [S.card, { opacity: pressed ? 0.75 : 1 }]}>
+      <View style={S.between}><View style={{ flex: 1, paddingRight: SP.sm }}><Text style={[S.h2, { fontSize: 15 }]} numberOfLines={1}>{item.counterparty.full_name}</Text><Text style={S.caption} numberOfLines={1}>{item.trip.name}</Text></View><View style={{ alignItems: "flex-end" }}><Text style={{ fontFamily: "Inter_700Bold", fontSize: 13, color: item.direction === "i_owe" ? C.red : C.mint }}>{item.direction === "i_owe" ? "Bạn nợ " : "Nợ bạn "}{money(item.amount)}</Text><Text style={S.caption}>Mở chia tiền →</Text></View></View>
+    </Pressable>)}
+  </View>;
+}
+
 function Trips({ navigation }) {
   const [trips, setTrips] = useState(null);
   const [pendingInvitations, setPendingInvitations] = useState([]);
+  const [debtDashboard, setDebtDashboard] = useState(null);
+  const [debtLoading, setDebtLoading] = useState(true);
+  const [debtError, setDebtError] = useState("");
   const [respondingId, setRespondingId] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
 
   const load = async () => {
     try {
-      const res = await api("/trips");
+      setDebtLoading(true);
+      setDebtError("");
+      const [tripsResult, debtResult] = await Promise.allSettled([
+        api("/trips"),
+        api("/dashboard/debts"),
+      ]);
+      if (tripsResult.status === "rejected") throw tripsResult.reason;
+      const res = tripsResult.value;
       // API now returns { trips, pending_invitations }
       if (res && Array.isArray(res.trips)) {
         setTrips(res.trips);
@@ -376,9 +452,15 @@ function Trips({ navigation }) {
         setTrips(Array.isArray(res) ? res : []);
         setPendingInvitations([]);
       }
+      if (debtResult.status === "fulfilled") {
+        setDebtDashboard(debtResult.value);
+      } else {
+        setDebtError(debtResult.reason?.message || "Không thể kết nối máy chủ");
+      }
     } catch (e) {
       Alert.alert("Lỗi", e.message);
     } finally {
+      setDebtLoading(false);
       setRefreshing(false);
     }
   };
@@ -424,6 +506,7 @@ function Trips({ navigation }) {
         contentContainerStyle={S.content}
       >
         <Header title="Chuyến đi của tôi" subtitle="Hôm nay mình sẽ đi đâu?" />
+        <MobileDebtDashboard data={debtDashboard} loading={debtLoading} error={debtError} navigation={navigation} />
         <Button
           title="+ Tạo chuyến đi mới"
           onPress={() => navigation.navigate("CreateTrip", { refresh: load })}
@@ -673,13 +756,13 @@ function DataList({ route, navigation }) {
                 onAction={
                   name === "Itinerary"
                     ? () =>
-                        navigation.navigate("ActivityDetail", { trip, item: x })
+                      navigation.navigate("ActivityDetail", { trip, item: x })
                     : name === "Expenses"
                       ? () =>
-                          navigation.navigate("ExpenseDetail", {
-                            trip,
-                            item: x,
-                          })
+                        navigation.navigate("ExpenseDetail", {
+                          trip,
+                          item: x,
+                        })
                       : null
                 }
               >
@@ -693,9 +776,9 @@ function DataList({ route, navigation }) {
                         ? navigation.navigate("ActivityDetail", { trip, item: x })
                         : name === "Expenses"
                           ? navigation.navigate("ExpenseDetail", {
-                              trip,
-                              item: x,
-                            })
+                            trip,
+                            item: x,
+                          })
                           : null
                     }
                   >
@@ -1120,14 +1203,22 @@ function AddActivity({ route, navigation }) {
 
   const submit = async () => {
     try {
-      await api(`/trips/${trip.id}/activities`, {
-        method: "POST",
-        body: {
-          ...f,
-          estimated_cost: Number(String(f.estimated_cost).replace(/\D/g, "")) || 0,
-        },
+      const finalEndDate = f.end_date || f.activity_date;
+      const start = new Date(`${f.activity_date}T${f.start_time}`);
+      const end = new Date(`${finalEndDate}T${f.end_time}`);
+      if (!f.activity_date || !f.start_time || !f.end_time || !Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) || end <= start) {
+        return Alert.alert("Thời gian chưa hợp lệ", "Giờ kết thúc phải sau giờ bắt đầu.");
+      }
+      const body = {
+        ...f,
+        end_date: finalEndDate,
+        estimated_cost: Number(String(f.estimated_cost).replace(/\D/g, "")) || 0,
+      };
+      await api(editingId ? `/activities/${editingId}` : `/trips/${trip.id}/activities`, {
+        method: editingId ? "PATCH" : "POST",
+        body,
       });
-      Alert.alert("Thành công", "Đã thêm hoạt động");
+      Alert.alert("Thành công", editingId ? "Đã cập nhật hoạt động" : "Đã thêm hoạt động");
       navigation.goBack();
     } catch (e) {
       Alert.alert("Lỗi", e.message);
@@ -1308,7 +1399,7 @@ function AddContribution({ route, navigation }) {
             "Thành công",
             "Thanh toán MoMo thành công! Đóng góp đã được ghi nhận.",
           );
-      } catch {}
+      } catch { }
     }, 5000);
     return () => clearInterval(timer);
   }, [payment?.id, payment?.status]);
@@ -1354,7 +1445,7 @@ function AddContribution({ route, navigation }) {
           await Linking.openURL(url);
           return;
         }
-      } catch {}
+      } catch { }
     }
     Alert.alert(
       "MoMo",
@@ -1363,36 +1454,13 @@ function AddContribution({ route, navigation }) {
   };
   const momo = async () => {
     if (busy) return;
-      if (editingId) {
-        await api(`/activities/${editingId}`, {
-          method: 'PATCH',
-          body: {
-            title: f.title,
-            activity_date: f.activity_date,
-            end_date: f.end_date || f.activity_date || null,
-            start_time: f.start_time,
-            end_time: f.end_time,
-            location: f.location,
-            location_name: f.location_name,
-            address: f.address,
-            latitude: f.latitude,
-            longitude: f.longitude,
-            map_provider: f.map_provider,
-            estimated_cost: Number(String(f.estimated_cost).replace(/\D/g, "")) || 0,
-            notes: f.notes,
-            participants: f.participants,
-          },
-        });
-      } else {
-        await api(`/trips/${trip.id}/activities`, {
-          method: "POST",
-          body: {
-            ...f,
-            end_date: f.end_date || f.activity_date || null,
-            estimated_cost: Number(String(f.estimated_cost).replace(/\D/g, "")) || 0,
-          },
-        });
-      }
+    setBusy(true);
+    try {
+      const cleanAmount = Number(String(f.amount).replace(/[^0-9]/g, ""));
+      const p = await api(`/trips/${trip.id}/contributions/momo/create`, {
+        method: "POST",
+        body: { amount: cleanAmount, return_url: "ustrip://payment-return" },
+      });
       setPayment(p);
       await openPayment(p);
     } catch (e) {
@@ -1401,248 +1469,248 @@ function AddContribution({ route, navigation }) {
       setBusy(false);
     }
   };
-  const check = async () => {
-    if (!payment) return;
-    try {
-      const p = await api(`/payments/${payment.id}/status`);
-      setPayment(p);
-      if (p.status === "success")
-        Alert.alert("Thành công", "Thanh toán thành công!");
-      else if (p.status === "failed")
-        Alert.alert("Thất bại", "Thanh toán không thành công.");
-      else Alert.alert("Trạng thái", p.status);
-    } catch (e) {
-      Alert.alert("Lỗi", e.message);
-    }
-  };
-  const getMockPath = (p) => {
-    const src = String(p?.pay_url || p?.deeplink || "");
-    const m = src.match(/\/api\/payments\/([^/]+)\/mock/);
-    return m
-      ? `/payments/${m[1]}/mock-success`
-      : p?.id
-        ? `/payments/${p.id}/mock-success`
-        : null;
-  };
-  const mockSuccess = async () => {
-    if (!payment) return;
-    setBusy(true);
-    try {
-      const path = getMockPath(payment);
-      if (!path) throw new Error("Không tìm được mock endpoint");
-      await api(path, { method: "POST" });
-      const updated = await api(`/payments/${payment.id}/status`);
-      setPayment(updated);
-      if (updated.status === "success")
-        Alert.alert("Thành công", "Đã đánh dấu thanh toán thành công!");
-      else Alert.alert("Trạng thái", updated.status);
-    } catch (e) {
-      Alert.alert("Lỗi", e.message);
-    } finally {
-      setBusy(false);
-    }
-  };
-  const resetPayment = () => {
-    setPayment(null);
-  };
-  const isMock =
-    payment &&
-    (payment.environment === "mock" ||
-      String(payment.deeplink || payment.pay_url || "").includes("/mock"));
-  const statusColors = { pending: C.gold, success: C.mint, failed: C.red };
-  return (
-    <SafeAreaView style={S.screen}>
-      <ScrollView contentContainerStyle={S.content}>
-        <Header
-          title="Thêm đóng góp"
-          subtitle={
-            members.find((x) => x.user_id === f.user_id)?.profile?.full_name
-          }
-        />
-        <Text style={S.label}>THÀNH VIÊN</Text>
-        {members.map((m) => (
-          <Pressable
-            key={`mem-${m.user_id}`}
-            onPress={() => setF({ ...f, user_id: m.user_id })}
-            style={[
-              S.selectionCard,
-              f.user_id === m.user_id && S.selectionCardActive,
-            ]}
-          >
-            <Text style={S.h2}>
-              {f.user_id === m.user_id ? "✓ " : ""}
-              {m.profile.full_name}
-            </Text>
-            <Text style={S.caption}>{m.profile.email}</Text>
-          </Pressable>
-        ))}
-        <Field
-          label="Số tiền"
-          keyboardType="numeric"
-          value={f.amount}
-          onChangeText={(v) => setF({ ...f, amount: v })}
-          placeholder="Nhập số tiền đóng góp"
-        />
-        {payment && (
-          <AnimatedCard
-            style={{
-              borderColor: statusColors[payment.status] || C.momo,
-              borderWidth: 2,
-            }}
-          >
-            <View style={S.between}>
-              <View>
-                <Text style={S.label}>MOMO PAYMENT</Text>
-                <Text
-                  style={[
-                    S.amount,
-                    { color: statusColors[payment.status] || C.blue },
-                  ]}
-                >
-                  {money(payment.amount)}
-                </Text>
-              </View>
-              <View
+const check = async () => {
+  if (!payment) return;
+  try {
+    const p = await api(`/payments/${payment.id}/status`);
+    setPayment(p);
+    if (p.status === "success")
+      Alert.alert("Thành công", "Thanh toán thành công!");
+    else if (p.status === "failed")
+      Alert.alert("Thất bại", "Thanh toán không thành công.");
+    else Alert.alert("Trạng thái", p.status);
+  } catch (e) {
+    Alert.alert("Lỗi", e.message);
+  }
+};
+const getMockPath = (p) => {
+  const src = String(p?.pay_url || p?.deeplink || "");
+  const m = src.match(/\/api\/payments\/([^/]+)\/mock/);
+  return m
+    ? `/payments/${m[1]}/mock-success`
+    : p?.id
+      ? `/payments/${p.id}/mock-success`
+      : null;
+};
+const mockSuccess = async () => {
+  if (!payment) return;
+  setBusy(true);
+  try {
+    const path = getMockPath(payment);
+    if (!path) throw new Error("Không tìm được mock endpoint");
+    await api(path, { method: "POST" });
+    const updated = await api(`/payments/${payment.id}/status`);
+    setPayment(updated);
+    if (updated.status === "success")
+      Alert.alert("Thành công", "Đã đánh dấu thanh toán thành công!");
+    else Alert.alert("Trạng thái", updated.status);
+  } catch (e) {
+    Alert.alert("Lỗi", e.message);
+  } finally {
+    setBusy(false);
+  }
+};
+const resetPayment = () => {
+  setPayment(null);
+};
+const isMock =
+  payment &&
+  (payment.environment === "mock" ||
+    String(payment.deeplink || payment.pay_url || "").includes("/mock"));
+const statusColors = { pending: C.gold, success: C.mint, failed: C.red };
+return (
+  <SafeAreaView style={S.screen}>
+    <ScrollView contentContainerStyle={S.content}>
+      <Header
+        title="Thêm đóng góp"
+        subtitle={
+          members.find((x) => x.user_id === f.user_id)?.profile?.full_name
+        }
+      />
+      <Text style={S.label}>THÀNH VIÊN</Text>
+      {members.map((m) => (
+        <Pressable
+          key={`mem-${m.user_id}`}
+          onPress={() => setF({ ...f, user_id: m.user_id })}
+          style={[
+            S.selectionCard,
+            f.user_id === m.user_id && S.selectionCardActive,
+          ]}
+        >
+          <Text style={S.h2}>
+            {f.user_id === m.user_id ? "✓ " : ""}
+            {m.profile.full_name}
+          </Text>
+          <Text style={S.caption}>{m.profile.email}</Text>
+        </Pressable>
+      ))}
+      <Field
+        label="Số tiền"
+        keyboardType="numeric"
+        value={f.amount}
+        onChangeText={(v) => setF({ ...f, amount: v })}
+        placeholder="Nhập số tiền đóng góp"
+      />
+      {payment && (
+        <AnimatedCard
+          style={{
+            borderColor: statusColors[payment.status] || C.momo,
+            borderWidth: 2,
+          }}
+        >
+          <View style={S.between}>
+            <View>
+              <Text style={S.label}>MOMO PAYMENT</Text>
+              <Text
                 style={[
-                  S.pill,
-                  payment.status === "pending"
-                    ? S.pillWarning
-                    : payment.status === "success"
-                      ? S.pillSuccess
-                      : S.pillDanger,
+                  S.amount,
+                  { color: statusColors[payment.status] || C.blue },
                 ]}
               >
-                <Text
-                  style={{
-                    fontSize: 11,
-                    fontWeight: "800",
-                    color:
-                      payment.status === "pending"
-                        ? C.gold
-                        : payment.status === "success"
-                          ? C.mint
-                          : C.red,
-                  }}
-                >
-                  {payment.status === "pending"
-                    ? "Đang chờ"
-                    : payment.status === "success"
-                      ? "Thành công"
-                      : "Thất bại"}
-                </Text>
-              </View>
+                {money(payment.amount)}
+              </Text>
             </View>
-            {payment.status === "pending" && (
-              <>
-                <Button
-                  title="Mở liên kết thanh toán"
-                  onPress={() => openPayment(payment)}
-                />
-                {isMock && (
-                  <Pressable
-                    onPress={mockSuccess}
-                    style={[
-                      S.button,
-                      { backgroundColor: C.mint, marginTop: SP.sm },
-                    ]}
-                  >
-                    <Text style={S.buttonText}>
-                      {busy ? "Đang xử lý..." : "✓ Đánh dấu thành công (Mock)"}
-                    </Text>
-                  </Pressable>
-                )}
+            <View
+              style={[
+                S.pill,
+                payment.status === "pending"
+                  ? S.pillWarning
+                  : payment.status === "success"
+                    ? S.pillSuccess
+                    : S.pillDanger,
+              ]}
+            >
+              <Text
+                style={{
+                  fontSize: 11,
+                  fontWeight: "800",
+                  color:
+                    payment.status === "pending"
+                      ? C.gold
+                      : payment.status === "success"
+                        ? C.mint
+                        : C.red,
+                }}
+              >
+                {payment.status === "pending"
+                  ? "Đang chờ"
+                  : payment.status === "success"
+                    ? "Thành công"
+                    : "Thất bại"}
+              </Text>
+            </View>
+          </View>
+          {payment.status === "pending" && (
+            <>
+              <Button
+                title="Mở liên kết thanh toán"
+                onPress={() => openPayment(payment)}
+              />
+              {isMock && (
                 <Pressable
-                  onPress={check}
+                  onPress={mockSuccess}
                   style={[
                     S.button,
-                    { backgroundColor: C.blueDark, marginTop: SP.sm },
+                    { backgroundColor: C.mint, marginTop: SP.sm },
                   ]}
                 >
-                  <Text style={S.buttonText}>Kiểm tra trạng thái</Text>
+                  <Text style={S.buttonText}>
+                    {busy ? "Đang xử lý..." : "✓ Đánh dấu thành công (Mock)"}
+                  </Text>
                 </Pressable>
-              </>
-            )}
-            {payment.status === "success" && (
-              <View
-                style={{
-                  backgroundColor: C.mintLight,
-                  borderRadius: R.md,
-                  padding: SP.md,
-                  marginTop: SP.md,
-                }}
-              >
-                <Text style={{ color: C.mint, fontWeight: "700" }}>
-                  Đóng góp đã được ghi nhận tự động vào quỹ chung.
-                </Text>
-              </View>
-            )}
-            {payment.status === "failed" && (
-              <View
-                style={{
-                  backgroundColor: C.redLight,
-                  borderRadius: R.md,
-                  padding: SP.md,
-                  marginTop: SP.md,
-                }}
-              >
-                <Text style={{ color: C.red, fontWeight: "700" }}>
-                  Thanh toán không thành công. Bạn có thể thử lại.
-                </Text>
-              </View>
-            )}
-            {payment.status !== "success" && (
+              )}
               <Pressable
-                onPress={resetPayment}
-                style={[S.buttonSecondary, { marginTop: SP.sm }]}
+                onPress={check}
+                style={[
+                  S.button,
+                  { backgroundColor: C.blueDark, marginTop: SP.sm },
+                ]}
               >
-                <Text style={S.buttonSecondaryText}>Tạo thanh toán mới</Text>
+                <Text style={S.buttonText}>Kiểm tra trạng thái</Text>
               </Pressable>
-            )}
-          </AnimatedCard>
-        )}
-        {!payment && (
-          <Pressable
-            onPress={momo}
-            style={[S.button, { backgroundColor: C.momo, marginTop: SP.lg }]}
-          >
-            <Text style={S.buttonText}>
-              {busy ? "Đang tạo..." : "Thanh toán với MoMo"}
-            </Text>
-          </Pressable>
-        )}
-        <View style={S.separator} />
-        <Header
-          title="Đóng góp thủ công"
-          subtitle="Ghi nhận đóng góp không qua MoMo"
+            </>
+          )}
+          {payment.status === "success" && (
+            <View
+              style={{
+                backgroundColor: C.mintLight,
+                borderRadius: R.md,
+                padding: SP.md,
+                marginTop: SP.md,
+              }}
+            >
+              <Text style={{ color: C.mint, fontWeight: "700" }}>
+                Đóng góp đã được ghi nhận tự động vào quỹ chung.
+              </Text>
+            </View>
+          )}
+          {payment.status === "failed" && (
+            <View
+              style={{
+                backgroundColor: C.redLight,
+                borderRadius: R.md,
+                padding: SP.md,
+                marginTop: SP.md,
+              }}
+            >
+              <Text style={{ color: C.red, fontWeight: "700" }}>
+                Thanh toán không thành công. Bạn có thể thử lại.
+              </Text>
+            </View>
+          )}
+          {payment.status !== "success" && (
+            <Pressable
+              onPress={resetPayment}
+              style={[S.buttonSecondary, { marginTop: SP.sm }]}
+            >
+              <Text style={S.buttonSecondaryText}>Tạo thanh toán mới</Text>
+            </Pressable>
+          )}
+        </AnimatedCard>
+      )}
+      {!payment && (
+        <Pressable
+          onPress={momo}
+          style={[S.button, { backgroundColor: C.momo, marginTop: SP.lg }]}
+        >
+          <Text style={S.buttonText}>
+            {busy ? "Đang tạo..." : "Thanh toán với MoMo"}
+          </Text>
+        </Pressable>
+      )}
+      <View style={S.separator} />
+      <Header
+        title="Đóng góp thủ công"
+        subtitle="Ghi nhận đóng góp không qua MoMo"
+      />
+      <Field
+        label="Ghi chú"
+        value={f.note}
+        onChangeText={(v) => setF({ ...f, note: v })}
+        placeholder="Ghi chú cho khoản đóng góp"
+      />
+      <Button
+        title={
+          f.payment_proof_url ? "Đổi ảnh minh chứng" : "Tải ảnh minh chứng"
+        }
+        onPress={pick}
+      />
+      {f.payment_proof_url && (
+        <Image
+          source={{ uri: f.payment_proof_url }}
+          resizeMode="contain"
+          style={{
+            height: 260,
+            borderRadius: R.lg,
+            marginTop: SP.md,
+            backgroundColor: C.disabled,
+          }}
         />
-        <Field
-          label="Ghi chú"
-          value={f.note}
-          onChangeText={(v) => setF({ ...f, note: v })}
-          placeholder="Ghi chú cho khoản đóng góp"
-        />
-        <Button
-          title={
-            f.payment_proof_url ? "Đổi ảnh minh chứng" : "Tải ảnh minh chứng"
-          }
-          onPress={pick}
-        />
-        {f.payment_proof_url && (
-          <Image
-            source={{ uri: f.payment_proof_url }}
-            resizeMode="contain"
-            style={{
-              height: 260,
-              borderRadius: R.lg,
-              marginTop: SP.md,
-              backgroundColor: C.disabled,
-            }}
-          />
-        )}
-        <Button orange title="Ghi nhận thủ công" onPress={submit} />
-      </ScrollView>
-    </SafeAreaView>
-  );
+      )}
+      <Button orange title="Ghi nhận thủ công" onPress={submit} />
+    </ScrollView>
+  </SafeAreaView>
+);
 }
 function ItemDetail({ route }) {
   const { item, trip } = route.params;
@@ -2063,7 +2131,7 @@ function Chat({ route, navigation }) {
   useEffect(() => {
     api("/auth/me")
       .then(setMe)
-      .catch(() => {});
+      .catch(() => { });
     api(`/trips/${trip.id}/messages`)
       .then((res) => {
         setMessages(res);
@@ -2363,7 +2431,7 @@ function Profile() {
         <Button
           title="Đăng xuất"
           onPress={async () => {
-            await unregisterPushNotifications().catch(() => {});
+            await unregisterPushNotifications().catch(() => { });
             await removeToken();
             setLogged(false);
           }}

@@ -140,7 +140,7 @@ function EditActivityForm({ activity, members, onClose, onSaved }) {
     setFormData({
       title: activity.title || "",
       start_datetime: `${activity.activity_date || ""}T${activity.start_time?.slice(0, 5) || "00:00"}`,
-      end_datetime: `${activity.activity_date || ""}T${activity.end_time?.slice(0, 5) || "00:00"}`,
+      end_datetime: `${activity.end_date || activity.activity_date || ""}T${activity.end_time?.slice(0, 5) || "00:00"}`,
       location: activity.location || "",
       location_name: activity.location_name || activity.location || "",
       address: activity.address || "",
@@ -163,6 +163,11 @@ function EditActivityForm({ activity, members, onClose, onSaved }) {
   const submit = async (event) => {
     event.preventDefault();
     try {
+      const startValue = new Date(formData.start_datetime);
+      const endValue = new Date(formData.end_datetime);
+      if (!formData.start_datetime || !formData.end_datetime || endValue <= startValue) {
+        throw new Error("Giờ kết thúc phải sau giờ bắt đầu");
+      }
       const startDate = formData.start_datetime.split("T");
       const endDate = formData.end_datetime.split("T");
       await api(`/activities/${activity.id}`, {
@@ -170,6 +175,7 @@ function EditActivityForm({ activity, members, onClose, onSaved }) {
         body: {
           title: formData.title,
           activity_date: startDate[0] || "",
+          end_date: endDate[0] || startDate[0] || "",
           start_time: startDate[1] || "",
           end_time: endDate[1] || "",
           location: formData.location,
@@ -214,6 +220,7 @@ function EditActivityForm({ activity, members, onClose, onSaved }) {
           <div>
             <label>Kết thúc</label>
             <input
+              required
               type="datetime-local"
               value={formData.end_datetime}
               onChange={(event) => setFormData({ ...formData, end_datetime: event.target.value })}

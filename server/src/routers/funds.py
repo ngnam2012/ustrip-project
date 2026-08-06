@@ -49,16 +49,13 @@ async def update_fund(request: Request, fund_in: FundUpdate, current_user: Dict[
 @router.get("/trips/{tripId}/contributions")
 async def list_contributions(request: Request, current_user: Dict[str, Any] = Depends(get_trip_member)):
     trip_id = request.path_params.get('tripId')
-    res = db.table('fund_contributions').select('*,profile:profiles(id,full_name,email,avatar_url)').eq('trip_id', trip_id).order('contributed_at', desc=True).execute()
+    res = db.table('fund_contributions').select('*,profile:profiles(id,full_name,email,avatar_url)').eq('trip_id', trip_id).order('created_at', desc=True).execute()
     return res.data or []
 
 @router.post("/trips/{tripId}/contributions", status_code=status.HTTP_201_CREATED)
 async def add_contribution(request: Request, contrib_in: ContributionCreate, current_user: Dict[str, Any] = Depends(get_trip_member)):
     trip_id = request.path_params.get('tripId')
     payload = contrib_in.model_dump(exclude_unset=True)
-    if 'contributed_at' in payload and payload['contributed_at']:
-        payload['contributed_at'] = payload['contributed_at'].isoformat()
-        
     payload.update({
         "trip_id": trip_id,
         "payment_method": "manual",
@@ -79,9 +76,6 @@ async def add_contribution(request: Request, contrib_in: ContributionCreate, cur
 async def update_contribution(request: Request, contrib_in: ContributionUpdate, current_user: Dict[str, Any] = Depends(require_contribution_member)):
     contribution_id = request.path_params.get('contributionId')
     payload = contrib_in.model_dump(exclude_unset=True)
-    if 'contributed_at' in payload and payload['contributed_at']:
-        payload['contributed_at'] = payload['contributed_at'].isoformat()
-        
     res = db.table('fund_contributions').update(payload).eq('id', contribution_id).execute()
     if not res.data:
         raise ApiError(404, 'Contribution not found')

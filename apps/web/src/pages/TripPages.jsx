@@ -1,4 +1,4 @@
-import { ArrowRight, CalendarDays, MapPin, Plus, Users, WalletCards, Plane, Camera, Share2, Globe, Link2, Lock } from 'lucide-react';
+import { ArrowDownLeft, ArrowRight, ArrowUpRight, CalendarDays, MapPin, Plus, Users, WalletCards, Plane, Camera, Share2, Globe, Link2, Lock, ReceiptText } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ErrorBox, Loader, Modal } from '../components/ui';
@@ -34,8 +34,86 @@ const getCoverUrl = (trip, index) => {
   return defaultCovers[0];
 };
 
+const debtTone = {
+  danger: { card: 'from-red-50 to-orange-50/60 border-red-100', icon: 'bg-red-100 text-red-600', value: 'text-red-600' },
+  success: { card: 'from-emerald-50 to-teal-50/60 border-emerald-100', icon: 'bg-emerald-100 text-emerald-600', value: 'text-emerald-600' },
+};
+
+function DebtDashboard({ remote }) {
+  if (remote.loading) {
+    return <div className="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      {[0, 1, 2, 3].map((item) => <div key={item} className="h-28 animate-pulse rounded-2xl bg-slate-100" />)}
+    </div>;
+  }
+
+  if (remote.error) return <div className="mb-8"><ErrorBox message={remote.error} /></div>;
+  const debt = remote.data;
+  if (!debt) return null;
+
+  const summaryCards = [
+    ['Mình nợ quỹ', debt.summary.fund_i_owe, 'danger', WalletCards],
+    ['Quỹ nợ mình', debt.summary.fund_owed_to_me, 'success', WalletCards],
+    ['Mình nợ người khác', debt.summary.personal_i_owe, 'danger', ArrowUpRight],
+    ['Người khác nợ mình', debt.summary.personal_owed_to_me, 'success', ArrowDownLeft],
+  ];
+  const hasPersonalDebt = debt.personal_by_trip.length > 0;
+
+  return <section className="mb-10" aria-labelledby="debt-dashboard-title">
+    <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+      <div>
+        <p className="page-eyebrow">Sổ công nợ</p>
+        <h2 id="debt-dashboard-title" className="mt-1 text-2xl font-extrabold text-ink">Tình hình tài chính của bạn</h2>
+      </div>
+      <span className={`rounded-full px-3 py-1.5 text-xs font-bold ${debt.summary.personal_net >= 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
+        Cá nhân ròng: {debt.summary.personal_net >= 0 ? '+' : '−'}{currency(Math.abs(debt.summary.personal_net))}
+      </span>
+    </div>
+
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      {summaryCards.map(([label, value, tone, Icon]) => {
+        const styles = debtTone[tone];
+        return <div key={label} className={`rounded-2xl border bg-gradient-to-br p-5 ${styles.card}`}>
+          <div className={`grid h-10 w-10 place-items-center rounded-xl ${styles.icon}`}><Icon size={19} /></div>
+          <p className="mt-4 text-sm font-semibold text-slate-500">{label}</p>
+          <p className={`mt-1 text-xl font-extrabold ${styles.value}`}>{currency(value)}</p>
+        </div>;
+      })}
+    </div>
+
+    <div className="mt-5 grid gap-5 xl:grid-cols-2">
+      <div className="card border border-slate-100">
+        <div className="mb-4 flex items-center gap-2"><WalletCards size={19} className="text-travel" /><h3 className="font-bold">Quỹ theo chuyến</h3></div>
+        {!debt.fund_by_trip.length ? <p className="py-6 text-center text-sm text-slate-500">Chưa có chuyến đi nào để tính công nợ quỹ.</p> :
+          <div className="space-y-2">{debt.fund_by_trip.map((item) => <Link key={item.trip.id} to={`/trips/${item.trip.id}/fund`} className="flex items-center justify-between gap-4 rounded-xl border border-slate-100 p-3 transition hover:border-blue-200 hover:bg-blue-50/40">
+            <div className="min-w-0"><p className="truncate text-sm font-bold text-ink">{item.trip.name}</p><p className="mt-0.5 text-xs text-slate-500">Đã góp {currency(item.contributed)} · Đã dùng {currency(item.consumed)}</p></div>
+            <div className="shrink-0 text-right"><p className={`text-sm font-extrabold ${item.direction === 'i_owe' ? 'text-red-600' : item.direction === 'owed_to_me' ? 'text-emerald-600' : 'text-slate-400'}`}>{item.direction === 'i_owe' ? 'Nợ quỹ ' : item.direction === 'owed_to_me' ? 'Quỹ nợ ' : ''}{item.direction === 'settled' ? 'Cân bằng' : currency(item.amount)}</p><span className="text-[11px] text-slate-400">Xem quỹ →</span></div>
+          </Link>)}</div>}
+      </div>
+
+      <div className="card border border-slate-100">
+        <div className="mb-4 flex items-center gap-2"><Users size={19} className="text-travel" /><h3 className="font-bold">Số ròng theo người</h3></div>
+        {!debt.counterparty_net.length ? <p className="py-6 text-center text-sm text-slate-500">Bạn chưa có công nợ cá nhân cần thanh toán.</p> :
+          <div className="space-y-2">{debt.counterparty_net.map((item) => <div key={item.profile.id} className="flex items-center justify-between rounded-xl bg-slate-50 p-3">
+            <div className="flex min-w-0 items-center gap-3"><div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white text-sm font-bold text-travel shadow-sm">{item.profile.full_name?.[0]}</div><p className="truncate text-sm font-bold">{item.profile.full_name}</p></div>
+            <p className={`shrink-0 text-sm font-extrabold ${item.direction === 'i_owe' ? 'text-red-600' : item.direction === 'owed_to_me' ? 'text-emerald-600' : 'text-slate-400'}`}>{item.direction === 'i_owe' ? 'Bạn nợ ' : item.direction === 'owed_to_me' ? 'Nợ bạn ' : 'Đã cân bằng'}{item.direction === 'settled' ? '' : currency(item.amount)}</p>
+          </div>)}</div>}
+      </div>
+    </div>
+
+    <div className="card mt-5 border border-slate-100">
+      <div className="mb-4 flex items-center gap-2"><ReceiptText size={19} className="text-travel" /><h3 className="font-bold">Công nợ cá nhân theo từng chuyến</h3></div>
+      {!hasPersonalDebt ? <p className="py-6 text-center text-sm text-slate-500">Tuyệt vời! Không có khoản công nợ cá nhân nào đang mở.</p> :
+        <div className="grid gap-3 md:grid-cols-2">{debt.personal_by_trip.map((item, index) => <Link key={`${item.trip.id}-${item.counterparty.id}-${item.direction}-${index}`} to={`/trips/${item.trip.id}/settlements`} className="flex items-center justify-between gap-4 rounded-xl border border-slate-100 p-3 transition hover:border-blue-200 hover:bg-blue-50/40">
+          <div className="min-w-0"><p className="truncate text-sm font-bold">{item.counterparty.full_name}</p><p className="mt-0.5 truncate text-xs text-slate-500">{item.trip.name}</p></div>
+          <div className="shrink-0 text-right"><p className={`text-sm font-extrabold ${item.direction === 'i_owe' ? 'text-red-600' : 'text-emerald-600'}`}>{item.direction === 'i_owe' ? 'Bạn nợ ' : 'Nợ bạn '}{currency(item.amount)}</p><span className="text-[11px] text-slate-400">Mở chia tiền →</span></div>
+        </Link>)}</div>}
+    </div>
+  </section>;
+}
+
 export function TripsPage() {
   const { data, loading, error, reload } = useRemote('/trips');
+  const debts = useRemote('/dashboard/debts');
   const [show, setShow] = useState(false);
   const [respondingId, setRespondingId] = useState(null);
 
@@ -70,6 +148,7 @@ export function TripsPage() {
       </button>
     </div>
     <ErrorBox message={error}/>
+    <DebtDashboard remote={debts} />
 
     {/* Pending Invitations Section */}
     {pendingInvitations.length > 0 && (

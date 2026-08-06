@@ -1,4 +1,4 @@
-CREATE TABLE trip_messages (
+CREATE TABLE IF NOT EXISTS trip_messages (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     trip_id UUID NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
     user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
@@ -9,10 +9,7 @@ CREATE TABLE trip_messages (
 
 ALTER TABLE trip_messages ENABLE ROW LEVEL SECURITY;
 
-CREATE TRIGGER update_trip_messages_updated_at
+DROP TRIGGER IF EXISTS set_trip_messages_updated_at ON trip_messages;
+CREATE TRIGGER set_trip_messages_updated_at
     BEFORE UPDATE ON trip_messages
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
--- Since all API access is via service role, RLS policies can be kept strict
-CREATE POLICY "Strict internal access for trip_messages"
-    ON trip_messages FOR ALL USING (false);
+    FOR EACH ROW EXECUTE FUNCTION set_updated_at();

@@ -44,9 +44,13 @@ app = FastAPI(
 # Exception Handler
 @app.exception_handler(ApiError)
 async def api_error_handler(request: Request, exc: ApiError):
+    content = {"message": exc.detail}
+    if getattr(exc, 'code', None):
+        content["code"] = exc.code
+    content.update(getattr(exc, 'data', {}) or {})
     return JSONResponse(
         status_code=exc.status_code,
-        content={"message": exc.detail}
+        content=content
     )
 
 @app.exception_handler(Exception)
