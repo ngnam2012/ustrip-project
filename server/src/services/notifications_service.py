@@ -90,7 +90,8 @@ async def notify_user(user_id: str, trip_id: str, type: str, title: str, message
         "trip_id": trip_id, 
         "type": type, 
         "title": title, 
-        "message": message
+        "message": message,
+        "is_read": False
     }])
     return notifications[0] if notifications else {}
 
@@ -103,7 +104,8 @@ async def notify_trip_members(trip_id: str, actor_id: str, type: str, title: str
         "trip_id": trip_id, 
         "type": type, 
         "title": title, 
-        "message": message
+        "message": message,
+        "is_read": False
     } for m in members]
     
     # ALWAYS inject a notification for the actor to ensure audit logs work even for solo trips

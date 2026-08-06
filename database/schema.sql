@@ -15,7 +15,7 @@ create type trip_role as enum ('owner', 'member');
 create type contribution_status as enum ('paid', 'partial', 'unpaid');
 create type expense_category as enum ('food', 'transport', 'hotel', 'ticket', 'shopping', 'other');
 create type expense_payment_source as enum ('shared_fund', 'personal');
-create type split_method as enum ('equal');
+create type split_method as enum ('equal', 'exact');
 create type notification_type as enum ('contribution_reminder', 'new_expense', 'itinerary_update', 'member_added');
 create type payment_status as enum ('pending', 'success', 'failed', 'cancelled', 'expired');
 create type invitation_status as enum ('pending', 'accepted', 'declined');

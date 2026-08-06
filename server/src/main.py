@@ -41,6 +41,24 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# CORS setup
+origins = [
+    settings.CLIENT_URL,
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:8081",
+]
+if settings.MOBILE_CLIENT_URL and settings.MOBILE_CLIENT_URL not in origins:
+    origins.append(settings.MOBILE_CLIENT_URL)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Exception Handler
 @app.exception_handler(ApiError)
 async def api_error_handler(request: Request, exc: ApiError):
@@ -48,33 +66,39 @@ async def api_error_handler(request: Request, exc: ApiError):
     if getattr(exc, 'code', None):
         content["code"] = exc.code
     content.update(getattr(exc, 'data', {}) or {})
+    
+    headers = {}
+    origin = request.headers.get("origin")
+    if origin:
+        headers["Access-Control-Allow-Origin"] = origin
+        headers["Access-Control-Allow-Credentials"] = "true"
+        headers["Access-Control-Allow-Methods"] = "*"
+        headers["Access-Control-Allow-Headers"] = "*"
+        
     return JSONResponse(
         status_code=exc.status_code,
-        content=content
+        content=content,
+        headers=headers
     )
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     logger.error(f"Unhandled exception: {exc}")
+    
+    headers = {}
+    origin = request.headers.get("origin")
+    if origin:
+        headers["Access-Control-Allow-Origin"] = origin
+        headers["Access-Control-Allow-Credentials"] = "true"
+        headers["Access-Control-Allow-Methods"] = "*"
+        headers["Access-Control-Allow-Headers"] = "*"
+        
     return JSONResponse(
         status_code=500,
-        content={"message": "Internal Server Error"}
+        content={"message": "Internal Server Error"},
+        headers=headers
     )
 
-# CORS setup
-origins = [
-    settings.CLIENT_URL,
-]
-if settings.MOBILE_CLIENT_URL:
-    origins.append(settings.MOBILE_CLIENT_URL)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 @app.get("/health")
 async def health_check():
